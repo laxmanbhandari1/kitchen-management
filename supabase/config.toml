@@ -1,0 +1,4 @@
+project_id = "the-shell"
+
+[functions.manage-staff]
+verify_jwt = true

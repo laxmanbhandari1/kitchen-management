@@ -1,0 +1,51 @@
+/* --- DESIGN SYSTEM --- */
+      :root {
+        --primary: #18263d;
+        --accent: #244da1;
+        --success: #16804a;
+        --warning: #f59e0b;
+        --error: #dc2626;
+        --bg: #f5f8fb;
+        --text: #64708b;
+        --border: #e4e7ec;
+        --white: #ffffff;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        background-color: #333;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      .app-container {
+        width: 100%;
+        max-width: 414px;
+        height: 100vh;
+        max-height: 896px;
+        background-color: var(--bg);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      }
+
+      @media (max-width: 414px) {
+        .app-container {
+          height: 100vh;
+          max-height: 100vh;
+        }
+      }

@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>The Shell - Kitchen Stock</title>
+    <link rel="stylesheet" href="css/design-system.css" />
+    <link rel="stylesheet" href="css/screens.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/animations.css" />
+    <link rel="stylesheet" href="css/profile-tasks.css" />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- INTRO SCREEN -->
+      <div id="intro-screen" class="screen active">
+        <div class="intro-slide active" id="slide-1">
+          <div class="intro-icon">🦞</div>
+          <h1 class="intro-title">THE SHELL</h1>
+          <p class="intro-text">
+            Simple. Fast. Accurate.<br />Keep your kitchen stocked and running
+            smoothly.
+          </p>
+        </div>
+        <div class="intro-slide" id="slide-2">
+          <div class="intro-icon">📋</div>
+          <h1 class="intro-title">7 Stock Forms</h1>
+          <p class="intro-text">
+            Manage Fridge, Freezer, Dry Store, Drinks, and more with ease.
+          </p>
+        </div>
+        <div class="intro-slide" id="slide-3">
+          <div class="intro-icon">📶</div>
+          <h1 class="intro-title">Works Offline</h1>
+          <p class="intro-text">
+            Shared records sync through Supabase when configured and online.
+          </p>
+        </div>
+
+        <div class="intro-dots">
+          <div class="dot active" id="dot-1"></div>
+          <div class="dot" id="dot-2"></div>
+          <div class="dot" id="dot-3"></div>
+        </div>
+        <button class="intro-btn" id="intro-next-btn" onclick="nextIntro()">
+          Next
+        </button>
+      </div>
+
+      <!-- LOGIN SCREEN -->
+      <div id="login-screen" class="screen">
+        <div class="login-header">
+          <div class="login-logo">🐚</div>
+          <h1 class="login-title">THE SHELL</h1>
+          <p class="login-subtitle">Kitchen Stock</p>
+        </div>
+        <form id="login-form" autocomplete="on">
+          <div class="form-group">
+            <label class="form-label" for="login-email">Staff email</label>
+            <input id="login-email" name="email" type="email" class="form-input" autocomplete="username" placeholder="name@theshell.co.uk" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" class="form-input" autocomplete="current-password" minlength="8" required />
+          </div>
+          <button class="btn-primary" id="login-submit" type="submit">Sign in</button>
+          <p id="login-message" class="feature-help" role="status" aria-live="polite">Configure Supabase to enable secure sign-in.</p>
+        </form>
+      </div>
+
+      <!-- MAIN APP -->
+      <div id="main-app" class="screen">
+        <div class="app-header">
+          <div>
+            <div class="header-title" id="welcome-text">Good morning, Alex</div>
+            <div class="header-subtitle" id="role-text">Employee View</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px"><button type="button" class="header-avatar avatar-button" aria-label="Open profile" onclick="switchTab('profile', document.getElementById('nav-profile'))"><span class="avatar-initial">A</span></button><button type="button" class="feature-small-btn" onclick="handleLogout()">Sign out</button></div>
+        </div>
+
+        <div class="app-content">
+          <!-- EMPLOYEE HOME VIEW -->
+          <div id="view-employee" class="view active">
+            <h2 class="section-title">Stations</h2>
+
+            <div class="card card-clickable" onclick="openStation('FOH', '🍽️')">
+              <div>
+                <div class="card-title">FOH</div>
+                <div class="card-subtitle">Front of House</div>
+              </div>
+              <div class="card-icon">🍽️</div>
+            </div>
+
+            <div
+              class="card card-clickable"
+              onclick="openStation('Kitchen Up', '🔥')"
+            >
+              <div>
+                <div class="card-title">Kitchen Up</div>
+                <div class="card-subtitle">Main Kitchen</div>
+              </div>
+              <div class="card-icon">🔥</div>
+            </div>
+
+            <div
+              class="card card-clickable"
+              onclick="openStation('Kitchen Down', '🔪')"
+            >
+              <div>
+                <div class="card-title">Kitchen Down</div>
+                <div class="card-subtitle">Prep & Storage</div>
+              </div>
+              <div class="card-icon">🔪</div>
+            </div>   
+
+            <section class="home-feature-section task-shortcuts-section">
+              <div class="feature-heading-row"><h2 class="section-title">Your tasks</h2><button class="text-action" onclick="switchTab('tasks', document.getElementById('nav-tasks'))">View all</button></div>
+              <p class="feature-help">Open the checks you use most, directly from Home.</p>
+              <div class="task-shortcut-grid">
+                <button class="task-shortcut" onclick="openStation('FOH','🍽️')"><span>🍽️</span><b>FOH</b><small>Opening · Closing · Cleaning · Toilets</small><em>Open tasks →</em></button>
+                <button class="task-shortcut" onclick="openStation('Kitchen Up','🔥')"><span>🔥</span><b>Kitchen Up</b><small>Opening · Closing · Cleaning</small><em>Open tasks →</em></button>
+                <button class="task-shortcut" onclick="openStation('Kitchen Down','🔪')"><span>🔪</span><b>Kitchen Down</b><small>Opening · Closing · Cleaning · Stock</small><em>Open tasks →</em></button>
+              </div>
+            </section>
+
+            <section class="home-feature-section" aria-labelledby="employee-stock-heading">
+              <div class="feature-heading-row">
+                <h2 class="section-title" id="employee-stock-heading">🚨 Out of stock / very low</h2>
+                <span class="feature-live-label">Shared stock alerts</span>
+              </div>
+              <p class="feature-help">Check this before taking orders. Items marked finished or very low need attention.</p>
+              <div id="stock-alerts-employee" class="feature-list"></div>
+            </section>
+
+            <section class="home-feature-section" aria-labelledby="employee-allergy-heading">
+              <h2 class="section-title" id="employee-allergy-heading">⚠️ Allergy notes</h2>
+              <p class="feature-help">Check the approved allergy information before advising a guest. If anything is unclear, ask the manager or chef.</p>
+              <div id="allergy-notes-employee" class="feature-list"></div>
+            </section>
+          </div>
+
+          <!-- ADMIN VIEW -->
+          <div id="view-admin" class="view">
+            <h2 class="section-title">Manager Dashboard</h2>
+            <div class="card" style="border-left: 4px solid var(--accent)">
+              <div class="card-title">Staff Management</div>
+              <div class="card-subtitle">Manage staff names and PINs</div>
+            </div>
+            <div class="card">
+              <div class="card-title">Records & History</div>
+              <div class="card-subtitle">View past stock checks and operational records</div>
+            </div>
+
+            <section class="home-feature-section">
+              <h2 class="section-title">Staff Management</h2>
+              <p class="feature-help">Create individual staff accounts. Managers can create employee accounts; only admins can create manager or admin accounts.</p>
+              <form id="staff-create-form" class="feature-editor">
+                <label class="form-label" for="staff-display-name">Staff name</label>
+                <input id="staff-display-name" class="form-input" maxlength="100" required placeholder="Full name" />
+                <label class="form-label" for="staff-email">Staff email</label>
+                <input id="staff-email" class="form-input" type="email" required placeholder="staff@example.com" />
+                <label class="form-label" for="staff-password">Temporary password (12+ characters)</label>
+                <input id="staff-password" class="form-input" type="password" minlength="12" required autocomplete="new-password" />
+                <label class="form-label" for="staff-role">Role</label>
+                <select id="staff-role" class="form-select"><option value="employee">Employee</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
+                <button class="btn-primary feature-submit" id="staff-create-submit" type="submit">Create staff account</button>
+                <p id="staff-create-message" class="feature-help" role="status" aria-live="polite"></p>
+              </form>
+            </section>
+
+            <section class="home-feature-section" aria-labelledby="admin-stock-heading">
+              <div class="feature-heading-row">
+                <h2 class="section-title" id="admin-stock-heading">🚨 Out of stock / very low</h2>
+                <span class="feature-live-label">Shared manager controls</span>
+              </div>
+              <p class="feature-help">Update an item to Very low or Finished. FOH and kitchen staff can view these alerts.</p>
+              <div id="stock-alerts-admin" class="feature-list"></div>
+              <form id="stock-alert-form" class="feature-editor">
+                <label class="form-label" for="stock-alert-name">Item name</label>
+                <input id="stock-alert-name" class="form-input" maxlength="80" placeholder="e.g. Oat milk" required />
+                <label class="form-label" for="stock-alert-status">Status</label>
+                <select id="stock-alert-status" class="form-select">
+                  <option value="low">Very low</option>
+                  <option value="finished">Finished / out of stock</option>
+                </select>
+                <label class="form-label" for="stock-alert-note">Note (optional)</label>
+                <input id="stock-alert-note" class="form-input" maxlength="160" placeholder="e.g. delivery expected tomorrow" />
+                <button class="btn-primary feature-submit" type="submit">Add / update item</button>
+              </form>
+            </section>
+
+            <section class="home-feature-section" aria-labelledby="admin-allergy-heading">
+              <h2 class="section-title" id="admin-allergy-heading">⚠️ Allergy notes</h2>
+              <p class="feature-help">Add the approved notes you provide later. These notes are a reminder only, not a substitute for checking packaging and the current allergen matrix.</p>
+              <div id="allergy-notes-admin" class="feature-list"></div>
+              <form id="allergy-note-form" class="feature-editor">
+                <label class="form-label" for="allergy-note-title">Dish / ingredient</label>
+                <input id="allergy-note-title" class="form-input" maxlength="100" placeholder="e.g. Tiramisu" required />
+                <label class="form-label" for="allergy-note-details">Allergy note</label>
+                <textarea id="allergy-note-details" class="form-input feature-textarea" maxlength="600" placeholder="Enter the approved allergy note" required></textarea>
+                <button class="btn-primary feature-submit" type="submit">Add allergy note</button>
+              </form>
+            </section>
+          </div>
+
+          <!-- TASKS VIEW -->
+          <div id="view-tasks" class="view">
+            <h2 class="section-title">Tasks</h2>
+            <p class="feature-help">Choose your work area, then open the checklist you need. These shortcuts are also available on Home.</p>
+            <div id="tasks-station-list" class="task-station-list"></div>
+          </div>
+
+          <!-- PROFILE & SETTINGS VIEW -->
+          <div id="view-profile" class="view">
+            <h2 class="section-title">Profile</h2>
+            <section class="profile-hero">
+              <div class="profile-avatar-wrap"><img id="profile-avatar-image" alt="Profile picture" hidden /><span id="profile-avatar-fallback">S</span></div>
+              <div class="profile-identity"><h2 id="profile-display-name">Staff member</h2><p id="profile-email-label">Signed-in staff account</p><span id="profile-role-pill" class="profile-role-pill">Employee</span></div>
+            </section>
+            <section class="profile-panel">
+              <div class="profile-panel-heading"><span>👤</span><div><h3>Personal information</h3><p>Keep your staff profile up to date.</p></div></div>
+              <label class="form-label" for="profile-name-input">Display name</label><input id="profile-name-input" class="form-input" maxlength="100" autocomplete="name" placeholder="Your name" />
+              <label class="form-label" for="profile-picture-input">Profile picture</label><input id="profile-picture-input" class="form-input profile-file-input" type="file" accept="image/png,image/jpeg,image/webp" />
+              <p class="feature-help">JPG, PNG or WebP, up to 5 MB. Your picture is stored in your team’s Supabase storage.</p>
+              <div class="profile-button-row"><button id="profile-save-button" class="btn-primary" type="button">Save name</button><button id="profile-upload-button" class="profile-secondary-button" type="button">Upload picture</button><button id="profile-remove-picture-button" class="profile-secondary-button danger" type="button">Remove picture</button></div>
+              <p id="profile-message" class="profile-message" role="status" aria-live="polite"></p>
+            </section>
+            <section class="profile-panel">
+              <div class="profile-panel-heading"><span>🔐</span><div><h3>Security settings</h3><p>Update your sign-in password or your staff PIN.</p></div></div>
+              <form id="profile-password-form" class="profile-form">
+                <h4>Change password</h4><label class="form-label" for="profile-current-password">Current password</label><input id="profile-current-password" class="form-input" type="password" autocomplete="current-password" required />
+                <label class="form-label" for="profile-new-password">New password (at least 8 characters)</label><input id="profile-new-password" class="form-input" type="password" minlength="8" autocomplete="new-password" required />
+                <label class="form-label" for="profile-confirm-password">Confirm new password</label><input id="profile-confirm-password" class="form-input" type="password" minlength="8" autocomplete="new-password" required />
+                <button class="btn-primary profile-submit" type="submit">Change password</button><p id="profile-password-message" class="profile-message" role="status"></p>
+              </form>
+              <form id="profile-pin-form" class="profile-form">
+                <h4>Change staff PIN</h4><p class="feature-help">Set a 4–8 digit PIN. It is stored as a hash and is not visible to managers or other staff.</p>
+                <label class="form-label" for="profile-pin-input">New PIN</label><input id="profile-pin-input" class="form-input" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="off" required placeholder="4–8 digits" />
+                <label class="form-label" for="profile-pin-confirm">Confirm PIN</label><input id="profile-pin-confirm" class="form-input" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="off" required placeholder="Repeat PIN" />
+                <button class="btn-primary profile-submit" type="submit">Save PIN</button><p id="profile-pin-message" class="profile-message" role="status"></p>
+              </form>
+            </section>
+            <section class="profile-panel profile-account-panel"><div><h3>Account</h3><p class="feature-help">Sign out securely from this device.</p></div><button type="button" class="profile-secondary-button danger" onclick="handleLogout()">Sign out</button></section>
+          </div>
+        </div>
+
+        <!-- BOTTOM NAV -->
+        <div class="bottom-nav" id="bottom-nav">
+          <div class="nav-item active" onclick="switchTab('home', this)">
+            <span class="nav-icon">🏠</span> Home
+          </div>
+          <div class="nav-item" id="nav-tasks" onclick="switchTab('tasks', this)">
+            <span class="nav-icon">📋</span> Tasks
+          </div>
+          <div class="nav-item" id="nav-profile" onclick="switchTab('profile', this)">
+            <span class="nav-icon">👤</span> Profile
+          </div>
+          <div
+            class="nav-item hidden"
+            id="nav-admin"
+            onclick="switchTab('admin', this)"
+          >
+            <span class="nav-icon">⚙️</span> Admin
+          </div>
+        </div>
+      </div>
+
+      <!-- STATION SUB-MENU SCREEN -->
+      <div id="station-screen" class="screen">
+        <div class="back-header">
+          <button class="back-btn" onclick="closeStation()">←</button>
+          <div class="station-title" id="station-title-text">FOH</div>
+        </div>
+
+        <!-- Menu list is generated dynamically via JS -->
+        <div class="menu-list" id="station-menu-list">
+          <!-- Buttons will be injected here -->
+        </div>
+      </div>
+
+      <!-- PLACEHOLDER FORM SCREEN -->
+      <div id="form-screen" class="screen">
+        <div class="back-header">
+          <button class="back-btn" onclick="closeForm()">←</button>
+          <div class="station-title" id="form-title-text">Form</div>
+        </div>
+
+        <div class="form-placeholder-content" id="form-content-area">
+          <!-- Form content will go here -->
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js" defer></script>
+    <script src="js/supabase-sync.js" defer></script>
+    <script src="js/intro.js" defer></script>
+    <script src="js/auth.js" defer></script>
+    <script src="js/navigation.js" defer></script>
+    <script src="js/stock-data.js" defer></script>
+    <script src="js/kitchen-checklists.js" defer></script>
+    <script src="js/kitchen-up-checklists.js" defer></script>
+    <script src="js/stations.js" defer></script>
+    <script src="js/foh-checklists.js" defer></script>
+    <script src="js/home-notices.js" defer></script>
+    <script src="js/profile.js" defer></script>
+    <script src="js/tasks.js" defer></script>
+  </body>
+</html>
