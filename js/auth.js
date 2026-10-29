@@ -30,26 +30,30 @@ function showSignedInApp(profile, user) {
 
 async function handleLogin(event) {
   if (event) event.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
+  const userId = document.getElementById('login-user-id').value.trim();
+  const pin = document.getElementById('login-pin').value;
   const message = document.getElementById('login-message');
   const button = document.getElementById('login-submit');
-  if (!email || !password) { message.textContent = 'Enter your email and password.'; return; }
+  if (!userId || !/^\d{4,8}$/.test(pin)) { message.textContent = 'Enter your staff user ID and 4–8 digit PIN.'; return; }
   button.disabled = true; message.textContent = 'Signing in…';
   try {
     const client = await window.initSupabase();
-    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    const { data, error } = await client.functions.invoke('pin-login', { body: { user_id: userId, pin } });
     if (error) throw error;
-    const { data: profile, error: profileError } = await client.from('profiles').select('id,display_name,role,active').eq('id', data.user.id).single();
+    if (!data?.token_hash) throw new Error(data?.error || 'Sign-in failed. Check your user ID and PIN.');
+    const { data: authData, error: verifyError } = await client.auth.verifyOtp({ token_hash: data.token_hash, type: 'magiclink' });
+    if (verifyError) throw verifyError;
+    const { data: profile, error: profileError } = await client.from('profiles').select('id,display_name,role,active').eq('id', authData.user.id).single();
     if (profileError) throw profileError;
     if (!profile.active) { await client.auth.signOut(); throw new Error('This staff account is disabled. Contact an admin.'); }
     window.currentUserRole = profile.role;
-    window.currentUserName = profile.display_name || data.user.email?.split('@')[0] || 'Staff';
+    window.currentUserName = profile.display_name || userId;
     await window.hydrateShellState();
-    showSignedInApp(profile, data.user);
+    showSignedInApp(profile, authData.user);
     message.textContent = '';
   } catch (error) {
-    message.textContent = error.message || 'Sign-in failed.';
+    message.textContent = 'Sign-in failed. Check your user ID and PIN, or contact your manager.';
+    console.error('PIN login failed:', error);
   } finally { button.disabled = false; }
 }
 

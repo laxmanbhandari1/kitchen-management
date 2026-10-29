@@ -60,15 +60,15 @@
         </div>
         <form id="login-form" autocomplete="on">
           <div class="form-group">
-            <label class="form-label" for="login-email">Staff email</label>
-            <input id="login-email" name="email" type="email" class="form-input" autocomplete="username" placeholder="name@theshell.co.uk" required />
+            <label class="form-label" for="login-user-id">Staff user ID</label>
+            <input id="login-user-id" name="user_id" type="text" class="form-input" autocomplete="username" placeholder="e.g. SHELL001" required />
           </div>
           <div class="form-group">
-            <label class="form-label" for="login-password">Password</label>
-            <input id="login-password" name="password" type="password" class="form-input" autocomplete="current-password" minlength="8" required />
+            <label class="form-label" for="login-pin">PIN</label>
+            <input id="login-pin" name="pin" type="password" class="form-input" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="current-password" required />
           </div>
           <button class="btn-primary" id="login-submit" type="submit">Sign in</button>
-          <p id="login-message" class="feature-help" role="status" aria-live="polite">Configure Supabase to enable secure sign-in.</p>
+          <p id="login-message" class="feature-help" role="status" aria-live="polite">Sign in with your staff user ID and PIN.</p>
         </form>
       </div>
 
@@ -115,7 +115,7 @@
                 <div class="card-subtitle">Prep & Storage</div>
               </div>
               <div class="card-icon">🔪</div>
-            </div>   
+            </div>
 
             <section class="home-feature-section task-shortcuts-section">
               <div class="feature-heading-row"><h2 class="section-title">Your tasks</h2><button class="text-action" onclick="switchTab('tasks', document.getElementById('nav-tasks'))">View all</button></div>

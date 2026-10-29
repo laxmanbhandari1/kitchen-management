@@ -62,3 +62,27 @@ drop policy if exists "Staff delete own profile photo" on storage.objects;
 create policy "Staff delete own profile photo" on storage.objects
 for delete to authenticated
 using (bucket_id = 'profile-photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+-- User IDs are the staff-facing login identifier. Set these uniquely for each staff profile.
+alter table public.profiles add column if not exists user_id text;
+create unique index if not exists profiles_user_id_unique on public.profiles (lower(user_id)) where user_id is not null;
+
+-- Called only by the server-side PIN login Edge Function using the service role.
+create or replace function public.verify_staff_pin(login_user_id text, supplied_pin text)
+returns table (staff_id uuid, staff_email text)
+language sql
+security definer
+set search_path = ''
+as $$
+  select p.id, u.email::text
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  where p.active = true
+    and lower(p.user_id) = lower(trim(login_user_id))
+    and p.pin_hash is not null
+    and supplied_pin ~ '^[0-9]{4,8}$'
+    and p.pin_hash = extensions.crypt(supplied_pin, p.pin_hash)
+  limit 1;
+$$;
+revoke all on function public.verify_staff_pin(text,text) from public, anon, authenticated;
+grant execute on function public.verify_staff_pin(text,text) to service_role;

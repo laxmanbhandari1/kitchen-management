@@ -123,3 +123,24 @@ supabase db push
 The migration `20261029000200_profile_settings.sql` creates the `profile-photos` Storage bucket and owner-folder policies, adds avatar fields, and adds `set_my_pin(new_pin)` which stores a salted hash. The PIN is not currently an alternative sign-in method; Supabase email/password remains the authentication method. Do not treat the PIN as an account password.
 
 The app Home now has direct task launchers for FOH, Kitchen Up, and Kitchen Down, and the Tasks tab provides the same checklists grouped by station.
+
+## Staff ID + PIN login
+
+The login screen now uses a staff `user_id` and 4–8 digit PIN. Deploy the PIN login Edge Function after applying migrations:
+
+```bash
+supabase functions deploy pin-login
+```
+
+Each staff account still needs an underlying Supabase Auth user/email, but staff do not enter the email to sign in. Assign each profile a unique staff ID and a PIN hash in the SQL Editor (replace UUID, user ID, and PIN):
+
+```sql
+update public.profiles
+set user_id = 'SHELL001',
+    pin_hash = extensions.crypt('482716', extensions.gen_salt('bf', 10))
+where id = 'REPLACE-WITH-AUTH-USER-UUID' and active = true;
+```
+
+Use a different ID and PIN for every staff member. Do not reuse the example PIN. After login, staff can change their PIN in Profile → Settings. Password change remains available as an account recovery/admin-managed credential, but it is not used on the staff-facing login screen. The PIN login function uses the service-role key only on the server and never exposes it to the browser.
+
+**Production hardening:** add persistent rate limiting / lockout and monitoring for PIN attempts before using this with real staff accounts. Short numeric PINs are weaker than passwords; use 6–8 digits, unique per person, and do not expose the SQL Editor to staff.
