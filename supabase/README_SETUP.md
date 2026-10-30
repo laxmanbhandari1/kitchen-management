@@ -184,3 +184,31 @@ UPDATE public.profiles SET role='developer', active=true WHERE id='REAL-AUTH-USE
 To promote another trusted account to Boss, use the same query with `role='boss'`. Never expose the service-role key in browser code. Email remains attached to each Supabase Auth account for future email workflows; staff sign in using Staff ID + PIN.
 
 The checklist builder writes shared rows to `public.checklist_templates`. Existing legacy checklist screens are still hard-coded in their original JS modules; the builder's saved rows are available to the app but those legacy screens need a further renderer integration before additions/removals automatically replace every hard-coded list item. This package does not claim that migration is already complete.
+
+
+## Staff ID + PIN login integration (important)
+
+The frontend `js/auth.js` sends `{ user_id, pin }` to the `pin-login` Edge Function, then exchanges the returned `token_hash` using `supabase.auth.verifyOtp({ type: "magiclink" })`. The included `supabase/functions/pin-login/index.ts` is aligned to that exact request/response contract and to the SQL function below.
+
+The SQL Editor function must have this signature and return type (UUID of the matching Auth user):
+
+```sql
+DROP FUNCTION IF EXISTS public.verify_staff_pin(text, text);
+CREATE FUNCTION public.verify_staff_pin(p_user_id text, p_pin text)
+RETURNS uuid
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT id FROM public.profiles
+  WHERE upper(user_id) = upper(trim(p_user_id))
+    AND active = true
+    AND pin_hash IS NOT NULL
+    AND extensions.crypt(p_pin, pin_hash) = pin_hash
+  LIMIT 1;
+$$;
+REVOKE ALL ON FUNCTION public.verify_staff_pin(text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.verify_staff_pin(text, text) TO service_role;
+```
+
+Deploy with `supabase functions deploy pin-login --no-verify-jwt`. Do not paste the service-role key into browser code. The function uses Supabase's server-provided `SUPABASE_SERVICE_ROLE_KEY`.
