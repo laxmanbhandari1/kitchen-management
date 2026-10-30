@@ -15,6 +15,8 @@ function showSignedInApp(profile, user) {
   document.getElementById('role-text').innerText = `${profile.role[0].toUpperCase()}${profile.role.slice(1)} View`;
   const adminNav = document.getElementById('nav-admin');
   if (adminNav) adminNav.classList.toggle('hidden', profile.role === 'employee');
+  const adminTitle = document.querySelector('#view-admin > .section-title');
+  if (adminTitle) adminTitle.textContent = profile.role === 'manager' ? 'Manager Dashboard' : 'Leadership Dashboard';
   const staffRole = document.getElementById('staff-role');
   if (staffRole) {
     [...staffRole.options].forEach(option => { option.hidden = profile.role !== 'admin' && option.value !== 'employee'; });
@@ -24,6 +26,7 @@ function showSignedInApp(profile, user) {
   if (avatar) avatar.innerHTML = `<span class="avatar-initial">${window.currentUserName.split(/\s+/).slice(0,2).map(part => part[0]).join('').toUpperCase()}</span>`;
   if (typeof window.refreshShellProfile === 'function') window.refreshShellProfile();
   if (typeof window.refreshHomeNotices === 'function') window.refreshHomeNotices();
+  if (typeof window.refreshShellAdminTools === 'function') window.refreshShellAdminTools();
   if (profile.role === 'employee') switchTab('home', document.querySelector('.nav-item'));
   else if (adminNav) switchTab('admin', adminNav);
 }
@@ -43,13 +46,15 @@ async function handleLogin(event) {
     if (!data?.token_hash) throw new Error(data?.error || 'Sign-in failed. Check your user ID and PIN.');
     const { data: authData, error: verifyError } = await client.auth.verifyOtp({ token_hash: data.token_hash, type: 'magiclink' });
     if (verifyError) throw verifyError;
-    const { data: profile, error: profileError } = await client.from('profiles').select('id,display_name,role,active').eq('id', authData.user.id).single();
+    const { data: profile, error: profileError } = await client.from('profiles').select('id,display_name,role,active,must_change_pin').eq('id', authData.user.id).single();
     if (profileError) throw profileError;
     if (!profile.active) { await client.auth.signOut(); throw new Error('This staff account is disabled. Contact an admin.'); }
     window.currentUserRole = profile.role;
     window.currentUserName = profile.display_name || userId;
+    window.forcePinChange = !!data.must_change_pin;
     await window.hydrateShellState();
     showSignedInApp(profile, authData.user);
+    if (window.forcePinChange) { alert('For account security, change your temporary PIN before using The Shell. Open Profile → Security settings.'); switchTab('profile', document.getElementById('nav-profile')); }
     message.textContent = '';
   } catch (error) {
     message.textContent = 'Sign-in failed. Check your user ID and PIN, or contact your manager.';
@@ -67,11 +72,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     event.preventDefault();
     const message = document.getElementById('staff-create-message');
     const button = document.getElementById('staff-create-submit');
-    if (!['manager', 'admin'].includes(window.currentUserRole)) { message.textContent = 'Only a manager or admin can create staff accounts.'; return; }
+    if (!['boss', 'developer'].includes(window.currentUserRole)) { message.textContent = 'Only Boss or Developer accounts can create staff accounts.'; return; }
     const payload = {
       display_name: document.getElementById('staff-display-name').value.trim(),
       email: document.getElementById('staff-email').value.trim(),
-      password: document.getElementById('staff-password').value,
+      user_id: document.getElementById('staff-user-id').value.trim(),
+      pin: document.getElementById('staff-initial-pin').value,
       role: document.getElementById('staff-role').value
     };
     button.disabled = true; message.textContent = 'Creating account…';
@@ -81,8 +87,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       staffForm.reset();
-      if (window.currentUserRole !== 'admin') document.getElementById('staff-role').value = 'employee';
-      message.textContent = `Created ${data.user.display_name} (${data.user.role}). Share the temporary password securely and ask them to change it.`;
+      if (window.currentUserRole !== 'developer') document.getElementById('staff-role').value = 'employee';
+      message.textContent = `Created ${data.user.display_name} (${data.user.role}). Give them their Staff ID and temporary PIN. They must change the PIN on first login.`;
     } catch (error) {
       message.textContent = error.message || 'Could not create the account. Check the Edge Function deployment and permissions.';
     } finally { button.disabled = false; }
@@ -96,7 +102,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     const client = await window.initSupabase();
     const { data: { session } } = await client.auth.getSession();
     if (!session) return;
-    const { data: profile, error } = await client.from('profiles').select('id,display_name,role,active').eq('id', session.user.id).single();
+    const { data: profile, error } = await client.from('profiles').select('id,display_name,role,active,must_change_pin').eq('id', session.user.id).single();
     if (error || !profile?.active) { await client.auth.signOut(); return; }
     window.currentUserRole = profile.role;
     window.currentUserName = profile.display_name || session.user.email?.split('@')[0] || 'Staff';

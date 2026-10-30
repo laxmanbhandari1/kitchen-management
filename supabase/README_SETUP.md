@@ -144,3 +144,43 @@ where id = 'REPLACE-WITH-AUTH-USER-UUID' and active = true;
 Use a different ID and PIN for every staff member. Do not reuse the example PIN. After login, staff can change their PIN in Profile → Settings. Password change remains available as an account recovery/admin-managed credential, but it is not used on the staff-facing login screen. The PIN login function uses the service-role key only on the server and never exposes it to the browser.
 
 **Production hardening:** add persistent rate limiting / lockout and monitoring for PIN attempts before using this with real staff accounts. Short numeric PINs are weaker than passwords; use 6–8 digits, unique per person, and do not expose the SQL Editor to staff.
+
+## Admin role when creating staff accounts
+
+The Create Staff form includes Employee, Manager and Admin roles. The Admin option is intentionally available only to a currently authenticated admin. Managers can create employees only. The `manage-staff` Edge Function independently enforces this rule on the server; changing the browser UI cannot grant admin access.
+
+To promote the first existing account to admin (bootstrap only), find its UUID under Authentication → Users, then run in SQL Editor:
+
+```sql
+UPDATE public.profiles
+SET role = 'admin', active = true
+WHERE id = 'PASTE-REAL-AUTH-USER-UUID'::uuid;
+```
+
+After that admin signs in, they can create further admin accounts from the staff-management form. Do not allow employees or managers to promote themselves.
+
+## Toilet check timing and late completion
+
+The 12:00–22:00 hourly toilet check is available only during its scheduled hour. Once the hour passes, the check is marked missed and a late-completion action asks for a reason. Staff can choose a suggested reason (busy, not needed, staff shortage, supplies unavailable, already checked) or enter a custom explanation. Future checks remain unavailable until their scheduled hour.
+
+## Leadership roles, manager dashboard and first-login PIN rotation (30 Oct update)
+
+Apply migration `20261030000100_roles_admin_and_templates.sql` after the existing migrations. Deploy:
+
+```bash
+supabase functions deploy manage-staff
+supabase functions deploy pin-login
+supabase functions deploy reset-staff-pin
+```
+
+Roles are `developer`, `boss`, `manager`, and `employee`. Manager can manage operational checklist templates and existing manager controls but cannot create accounts or reset PINs. Boss can create employee/manager accounts and reset PINs. Developer can create any role, including Boss and Developer. New accounts are created with email, Staff ID and temporary PIN; `must_change_pin=true` forces a PIN change on first login. Boss/Developer reset sets this flag again.
+
+Bootstrap the first Developer account only after creating its Auth user in Supabase Dashboard → Authentication → Users:
+
+```sql
+UPDATE public.profiles SET role='developer', active=true WHERE id='REAL-AUTH-USER-UUID'::uuid;
+```
+
+To promote another trusted account to Boss, use the same query with `role='boss'`. Never expose the service-role key in browser code. Email remains attached to each Supabase Auth account for future email workflows; staff sign in using Staff ID + PIN.
+
+The checklist builder writes shared rows to `public.checklist_templates`. Existing legacy checklist screens are still hard-coded in their original JS modules; the builder's saved rows are available to the app but those legacy screens need a further renderer integration before additions/removals automatically replace every hard-coded list item. This package does not claim that migration is already complete.

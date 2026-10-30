@@ -274,3 +274,19 @@
 .feature-textarea { min-height:90px; resize:vertical; padding-top:10px; }
 .feature-submit { width:100%; margin-top:12px; }
 .allergy-caution { font-size:11px; color:#8b5b00; background:#fff7df; padding:9px; border-radius:8px; margin-top:8px; line-height:1.45; }
+
+/* Light, clean form styling: replace the dark blue/teal form palette with white. */
+.functional-form-area{background:#fff!important;color:#263244!important}
+.stock-app,.toilet-app,.kcheck-app,.kup-app,.foh-app,.cleaning-app{background:#fff!important;color:#263244!important}
+.stock-summary,.kcheck-summary{background:#f7f8fa!important;border:1px solid #e5e7eb!important}
+.stock-summary h2,.toilet-intro h2,.kcheck-summary h2{color:#172033!important}
+.stock-summary p,.toilet-intro p,.kcheck-summary p,.eyebrow,.stock-category-heading{color:#667085!important}
+.stock-item-card,.toilet-panel,.toilet-intro,.quantity-box,.kcheck-card,.kcheck-item,.kup-card,.foh-card{background:#fff!important;color:#263244!important;border:1px solid #e5e7eb!important;box-shadow:0 1px 3px rgba(16,24,40,.05)!important}
+.stock-item-name h3,.toilet-panel h3,.toilet-time,.kcheck-app h3,.kcheck-app label{color:#263244!important}
+.stock-tools input,.stock-tools select,.stock-item-card input,.stock-item-card select,.quantity-box select,.toilet-app input,.stock-extra input,.stock-extra select,.stock-extra textarea,.functional-form-area input,.functional-form-area select,.functional-form-area textarea{background:#fff!important;color:#263244!important;border:1px solid #d0d5dd!important}
+.stock-chip,.kcheck-tab{background:#fff!important;color:#475467!important;border:1px solid #d0d5dd!important}
+.stock-chip.active,.kcheck-tab.active{background:#f2f4f7!important;color:#344054!important;border-color:#98a2b3!important}
+.stock-save-btn,.toilet-action{background:#f2f4f7!important;color:#344054!important;border:1px solid #d0d5dd!important}
+.stock-alert{background:#fff4ed!important;color:#b54708!important}
+.toilet-today-progress,.toilet-note{background:#f8fafc!important;color:#475467!important}
+.toilet-row{border-color:#eaecf0!important}.toilet-status.pending{background:#f2f4f7!important;color:#667085!important}.toilet-status.missed{background:#fff1f3!important;color:#c01048!important}.toilet-status.done{background:#ecfdf3!important;color:#027a48!important}.toilet-wait{font-size:12px;color:#98a2b3}.toilet-action.late{background:#fff4ed!important;color:#b54708!important}

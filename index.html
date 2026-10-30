@@ -157,22 +157,26 @@
 
             <section class="home-feature-section">
               <h2 class="section-title">Staff Management</h2>
-              <p class="feature-help">Create individual staff accounts. Managers can create employee accounts; only admins can create manager or admin accounts.</p>
+              <p class="feature-help">Managers can manage operations and checklist content. Only Boss and Developer accounts can create staff accounts; only Developer can create Boss or Developer accounts.</p>
               <form id="staff-create-form" class="feature-editor">
                 <label class="form-label" for="staff-display-name">Staff name</label>
                 <input id="staff-display-name" class="form-input" maxlength="100" required placeholder="Full name" />
                 <label class="form-label" for="staff-email">Staff email</label>
                 <input id="staff-email" class="form-input" type="email" required placeholder="staff@example.com" />
-                <label class="form-label" for="staff-password">Temporary password (12+ characters)</label>
-                <input id="staff-password" class="form-input" type="password" minlength="12" required autocomplete="new-password" />
+                <label class="form-label" for="staff-user-id">Staff ID</label>
+                <input id="staff-user-id" class="form-input" maxlength="80" required placeholder="e.g. FOH014" />
+                <label class="form-label" for="staff-initial-pin">Temporary PIN (4–8 digits)</label>
+                <input id="staff-initial-pin" class="form-input" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required autocomplete="off" />
                 <label class="form-label" for="staff-role">Role</label>
-                <select id="staff-role" class="form-select"><option value="employee">Employee</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
+                <select id="staff-role" class="form-select"><option value="employee">Employee</option><option value="manager">Manager</option><option value="boss">Boss</option><option value="developer">Developer</option></select>
                 <button class="btn-primary feature-submit" id="staff-create-submit" type="submit">Create staff account</button>
                 <p id="staff-create-message" class="feature-help" role="status" aria-live="polite"></p>
               </form>
             </section>
 
-            <section class="home-feature-section" aria-labelledby="admin-stock-heading">
+            <section class="home-feature-section"><h2 class="section-title">Checklist & Task Builder</h2><p class="feature-help">Managers, Boss and Developer can add or retire checklist items for each station. These shared templates are stored in Supabase.</p><form id="template-form" class="feature-editor"><label class="form-label">Station</label><select id="template-station" class="form-select"><option>FOH</option><option>Kitchen Up</option><option>Kitchen Down</option></select><label class="form-label">Checklist</label><select id="template-checklist" class="form-select"><option>Opening Checks</option><option>Closing Checks</option><option>Cleaning Checks</option><option>Cleaning Logs</option></select><label class="form-label">Task item</label><input id="template-item" class="form-input" required maxlength="180" placeholder="e.g. Mop the kitchen floor"/><button class="btn-primary feature-submit" type="submit">Add checklist item</button><p id="template-message" class="feature-help"></p></form><div id="template-list" class="feature-list"></div></section>
+<section class="home-feature-section" id="leadership-staff-tools"><h2 class="section-title">Staff accounts & PIN reset</h2><p class="feature-help">Only Boss and Developer can reset a staff PIN. The staff member must choose a new PIN at next login.</p><form id="staff-reset-form" class="feature-editor"><label class="form-label">Staff ID</label><input id="reset-staff-id" class="form-input" required/><label class="form-label">Temporary PIN</label><input id="reset-staff-pin" class="form-input" type="password" inputmode="numeric" pattern="[0-9]{4,8}" required/><button class="btn-primary feature-submit" type="submit">Reset staff PIN</button><p id="staff-reset-message" class="feature-help"></p></form></section>
+<section class="home-feature-section" aria-labelledby="admin-stock-heading">
               <div class="feature-heading-row">
                 <h2 class="section-title" id="admin-stock-heading">🚨 Out of stock / very low</h2>
                 <span class="feature-live-label">Shared manager controls</span>
@@ -309,5 +313,6 @@
     <script src="js/home-notices.js" defer></script>
     <script src="js/profile.js" defer></script>
     <script src="js/tasks.js" defer></script>
+    <script src="js/admin-tools.js" defer></script>
   </body>
 </html>

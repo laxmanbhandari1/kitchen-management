@@ -1,0 +1,10 @@
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { corsHeaders } from '../_shared/cors.ts';
+const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...corsHeaders,'Content-Type':'application/json'}});
+Deno.serve(async req=>{if(req.method==='OPTIONS')return new Response('ok',{headers:corsHeaders});if(req.method!=='POST')return reply({error:'Method not allowed'},405);
+ const url=Deno.env.get('SUPABASE_URL')!,anon=Deno.env.get('SUPABASE_ANON_KEY')!,secret=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;const token=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');if(!token)return reply({error:'Sign in required'},401);
+ const caller=createClient(url,anon,{global:{headers:{Authorization:`Bearer ${token}`}}});const {data:{user}}=await caller.auth.getUser(token);if(!user)return reply({error:'Invalid session'},401);const db=createClient(url,secret);
+ const {data:actor}=await db.from('profiles').select('role,active').eq('id',user.id).single();if(!actor?.active||!['boss','developer'].includes(actor.role))return reply({error:'Only Boss or Developer can reset PINs.'},403);
+ const {user_id,pin}=await req.json();if(typeof user_id!=='string'||typeof pin!=='string'||!/^[0-9]{4,8}$/.test(pin))return reply({error:'Provide staff user ID and a 4–8 digit temporary PIN.'},400);
+ const {data:hash,error}=await db.rpc('hash_staff_pin',{plain_pin:pin});if(error)return reply({error:error.message},400);const {data:target}=await db.from('profiles').select('id').eq('user_id',user_id).single();if(!target)return reply({error:'Staff account not found.'},404);
+ const {error:updateError}=await db.from('profiles').update({pin_hash:hash,must_change_pin:true}).eq('id',target.id);if(updateError)return reply({error:updateError.message},400);return reply({success:true,must_change_pin:true});});

@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     if (!match?.staff_email) return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     const { data: link, error: linkError } = await admin.auth.admin.generateLink({ type: "magiclink", email: match.staff_email });
     if (linkError || !link?.properties?.hashed_token) throw linkError || new Error("Could not create session");
-    return new Response(JSON.stringify({ token_hash: link.properties.hashed_token }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ token_hash: link.properties.hashed_token, must_change_pin: !!match.force_pin_change }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("pin-login error", error);
     return new Response(JSON.stringify({ error: "Sign-in is temporarily unavailable" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

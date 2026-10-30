@@ -139,18 +139,27 @@ function updateStockSummary(area) {
 function toiletState(){const all=readStore(TOILET_KEY,{});return all[todayKey()]||{};}
 function saveToiletState(state){const all=readStore(TOILET_KEY,{});all[todayKey()]=state;return writeStore(TOILET_KEY,all);}
 function renderToiletForm(area){
-  const hours=Array.from({length:11},(_,i)=>12+i);const state=toiletState();
-  const rows=hours.map(hour=>{const key=String(hour),entry=state[key]||{};const label=`${String(hour).padStart(2,'0')}:00`;let status=entry.status;
-    if(!status){const now=new Date();status=now.getHours()>hour?'missed':'pending';}
-    return `<div class="toilet-row" data-hour="${key}"><div class="toilet-time">${label}</div><div class="toilet-status ${status}">${status==='done'?'✓ Completed':status==='missed'?'× Missed':'○ Pending'}</div><div class="toilet-actions">${status==='done'?`<button type="button" class="toilet-action secondary" data-action="undo">Undo</button>`:`<button type="button" class="toilet-action" data-action="complete">✓ Check</button>`}<button type="button" class="toilet-action explain" data-action="explain">✍️ Explain</button></div>${entry.note?`<p class="toilet-note">${escapeHtml(entry.note)}</p>`:''}</div>`;
+  const hours=Array.from({length:11},(_,i)=>12+i), state=toiletState(), now=new Date(), currentHour=now.getHours();
+  const reasons=['Too busy with customers','Not needed / no use','Staff shortage','Cleaning supplies unavailable','Toilet already checked','Other'];
+  const rows=hours.map(hour=>{const key=String(hour),entry=state[key]||{}, label=`${String(hour).padStart(2,'0')}:00`;
+    const status=entry.status || (currentHour>hour?'missed':'pending');
+    const isCurrent=currentHour===hour, isFuture=currentHour<hour;
+    const action=status==='done'?`<button type="button" class="toilet-action secondary" data-action="undo">Undo</button>`:isCurrent?`<button type="button" class="toilet-action" data-action="complete">✓ Done now</button>`:status==='missed'?`<button type="button" class="toilet-action late" data-action="late">Complete late</button>`:`<span class="toilet-wait">Available at ${label}</span>`;
+    return `<div class="toilet-row" data-hour="${key}"><div class="toilet-time">${label}</div><div class="toilet-status ${status}">${status==='done'?'✓ Completed':status==='missed'?'× Missed':isCurrent?'● Current check':'○ Upcoming'}</div><div class="toilet-actions">${action}</div>${entry.note?`<p class="toilet-note">${escapeHtml(entry.note)}</p>`:''}</div>`;
   }).join('');
   const done=hours.filter(h=>state[String(h)]?.status==='done').length;
-  area.innerHTML=`<div class="toilet-app"><div class="toilet-intro"><div class="eyebrow">FOH · HYGIENE LOG</div><h2>🚻 Toilet check</h2><p>Toilets are checked every hour from 12:00 to 22:00.</p><div class="toilet-today-progress">${done} of ${hours.length} checks completed · ${dateLabel()}</div></div><section class="toilet-panel"><h3>Today's checks</h3><div id="toilet-check-list">${rows}</div></section><p class="local-save-note" id="toilet-save-message">Check results and explanations save locally on this device.</p></div>`;
+  area.innerHTML=`<div class="toilet-app"><div class="toilet-intro"><div class="eyebrow">FOH · HYGIENE LOG</div><h2>🚻 Toilet check</h2><p>Each check becomes available only during its scheduled hour (12:00–22:00). Missed checks can be recorded late with a reason.</p><div class="toilet-today-progress">${done} of ${hours.length} checks completed · ${dateLabel()} · Current time ${now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div></div><section class="toilet-panel"><h3>Today's checks</h3><div id="toilet-check-list">${rows}</div></section><p class="local-save-note" id="toilet-save-message">Check results and explanations save in the app.</p></div>`;
   area.querySelectorAll('.toilet-row button').forEach(btn=>btn.addEventListener('click',()=>{
-    const row=btn.closest('.toilet-row'),hour=row.dataset.hour,action=btn.dataset.action;const s=toiletState();s[hour]=s[hour]||{};
-    if(action==='complete'){s[hour].status='done';s[hour].checkedAt=new Date().toISOString();s[hour].staff=(window.currentUserName || 'Staff');}
-    if(action==='undo'){s[hour].status='missed';delete s[hour].checkedAt;}
-    if(action==='explain'){const note=window.prompt(`Explain the ${String(hour).padStart(2,'0')}:00 toilet check (e.g. why it was missed):`,s[hour].note||'');if(note===null)return;s[hour].note=note.trim();if(!s[hour].status)s[hour].status='missed';}
-    const ok=saveToiletState(s);renderToiletForm(area);const msg=area.querySelector('#toilet-save-message');if(msg)msg.textContent=ok?'Saved on this device.':'Could not save; check browser storage settings.';
+    const row=btn.closest('.toilet-row'),hour=Number(row.dataset.hour),key=String(hour),action=btn.dataset.action,s=toiletState(),now=new Date();s[key]=s[key]||{};
+    if(action==='complete'){
+      if(now.getHours()!==hour){window.alert('This check is only available during its scheduled hour.');return;}
+      s[key]={...s[key],status:'done',late:false,checkedAt:now.toISOString(),staff:window.currentUserName||'Staff'};
+    } else if(action==='late'){
+      const reason=window.prompt(`The ${String(hour).padStart(2,'0')}:00 check is late. Choose a reason by entering a number:\n${reasons.map((r,i)=>`${i+1}. ${r}`).join('\n')}`, '1');
+      if(reason===null)return;const n=Number(reason);let explanation=(n>=1&&n<=reasons.length)?reasons[n-1]:reason.trim();
+      if(n===6||!Number.isInteger(n)||n<1||n>reasons.length){const extra=window.prompt('Please explain why this check was late:');if(extra===null||!extra.trim())return;explanation=extra.trim();}
+      s[key]={...s[key],status:'done',late:true,note:`Late completion — ${explanation}`,reason:explanation,checkedAt:now.toISOString(),staff:window.currentUserName||'Staff'};
+    } else if(action==='undo'){if(!confirm('Undo this toilet check?'))return;delete s[key];}
+    const ok=saveToiletState(s);renderToiletForm(area);const msg=area.querySelector('#toilet-save-message');if(msg)msg.textContent=ok?'Toilet check saved.':'Could not save; check browser storage settings.';
   }));
 }

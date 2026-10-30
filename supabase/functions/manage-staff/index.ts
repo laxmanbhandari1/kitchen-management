@@ -1,57 +1,21 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
-  status,
-  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...corsHeaders,'Content-Type':'application/json'}});
+Deno.serve(async req=>{
+ if(req.method==='OPTIONS') return new Response('ok',{headers:corsHeaders});
+ if(req.method!=='POST') return reply({error:'Method not allowed'},405);
+ const url=Deno.env.get('SUPABASE_URL')!, anon=Deno.env.get('SUPABASE_ANON_KEY')!, secret=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+ const token=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,''); if(!token) return reply({error:'Sign in required'},401);
+ const caller=createClient(url,anon,{global:{headers:{Authorization:`Bearer ${token}`}}}); const {data:{user},error}=await caller.auth.getUser(token); if(error||!user) return reply({error:'Invalid session'},401);
+ const db=createClient(url,secret); const {data:actor}=await db.from('profiles').select('role,active').eq('id',user.id).single();
+ if(!actor?.active||!['boss','developer'].includes(actor.role)) return reply({error:'Only Boss or Developer accounts can create accounts.'},403);
+ const body=await req.json(); const email=String(body.email||'').trim().toLowerCase(), name=String(body.display_name||'').trim(), staffId=String(body.user_id||'').trim(), pin=String(body.pin||''), role=String(body.role||'employee');
+ if(!email.includes('@')||!name||staffId.length<2||!/^\d{4,8}$/.test(pin)||!['employee','manager','boss','developer'].includes(role)) return reply({error:'Enter a name, valid email, staff ID, 4–8 digit initial PIN and valid role.'},400);
+ if(actor.role!=='developer' && ['boss','developer'].includes(role)) return reply({error:'Only Developer can create Boss or Developer accounts.'},403);
+ const {data:created,error:createErr}=await db.auth.admin.createUser({email,email_confirm:true,user_metadata:{display_name:name}});
+ if(createErr||!created.user) return reply({error:createErr?.message||'Account creation failed'},400);
+ const {error:profileErr}=await db.from('profiles').upsert({id:created.user.id,display_name:name,role,active:true,user_id:staffId,pin_hash:await hashPin(pin),must_change_pin:true});
+ if(profileErr){await db.auth.admin.deleteUser(created.user.id);return reply({error:profileErr.message},400)}
+ return reply({user:{id:created.user.id,email,user_id:staffId,display_name:name,role,must_change_pin:true}},201);
 });
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
-
-  const url = Deno.env.get('SUPABASE_URL');
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!url || !anonKey || !serviceKey) return json({ error: 'Server environment is not configured.' }, 500);
-
-  const authHeader = req.headers.get('Authorization') || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '');
-  if (!token) return json({ error: 'Sign in first.' }, 401);
-
-  const callerClient = createClient(url, anonKey, { global: { headers: { Authorization: `Bearer ${token}` } }, auth: { persistSession: false } });
-  const { data: callerData, error: callerError } = await callerClient.auth.getUser(token);
-  if (callerError || !callerData.user) return json({ error: 'Invalid session.' }, 401);
-
-  const admin = createClient(url, serviceKey, { auth: { autoRefreshToken: false, persistSession: false } });
-  const { data: callerProfile, error: profileError } = await admin.from('profiles').select('role,active').eq('id', callerData.user.id).single();
-  if (profileError || !callerProfile?.active || !['manager', 'admin'].includes(callerProfile.role)) {
-    return json({ error: 'Only active managers and admins can manage staff.' }, 403);
-  }
-
-  let input: { email?: string; password?: string; display_name?: string; role?: string };
-  try { input = await req.json(); } catch { return json({ error: 'Invalid JSON.' }, 400); }
-  const email = String(input.email || '').trim().toLowerCase();
-  const password = String(input.password || '');
-  const displayName = String(input.display_name || '').trim().slice(0, 100);
-  const role = String(input.role || 'employee');
-  if (!email || !email.includes('@') || password.length < 12 || !displayName) {
-    return json({ error: 'Provide a valid email, display name, and password of at least 12 characters.' }, 400);
-  }
-  if (!['employee', 'manager', 'admin'].includes(role)) return json({ error: 'Invalid role.' }, 400);
-  if (role !== 'employee' && callerProfile.role !== 'admin') return json({ error: 'Only an admin can create manager/admin accounts.' }, 403);
-
-  const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email, password, email_confirm: true, user_metadata: { display_name: displayName },
-  });
-  if (createError || !created.user) return json({ error: createError?.message || 'Could not create account.' }, 400);
-
-  const { error: updateError } = await admin.from('profiles').upsert({
-    id: created.user.id, display_name: displayName, role, active: true,
-  });
-  if (updateError) {
-    await admin.auth.admin.deleteUser(created.user.id);
-    return json({ error: 'Account setup failed; the new account was rolled back.' }, 500);
-  }
-  return json({ user: { id: created.user.id, email, display_name: displayName, role } }, 201);
-});
+async function hashPin(pin:string){const {data,error}=await createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!).rpc('hash_staff_pin',{plain_pin:pin});if(error)throw error;return data;}

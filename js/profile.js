@@ -111,7 +111,8 @@
     setMessage('profile-pin-message', 'Saving PIN securely…');
     try {
       const client = await window.initSupabase();
-      const { error } = await client.rpc('set_my_pin', { new_pin: pin });
+      const { data: prof } = await client.from('profiles').select('must_change_pin').eq('id', window.currentUserId).single();
+      const { error } = await client.rpc(prof?.must_change_pin ? 'complete_first_pin_change' : 'set_my_pin', { new_pin: pin });
       if (error) throw error;
       $('profile-pin-form').reset(); setMessage('profile-pin-message', 'Your PIN has been saved securely.');
     } catch (e) { setMessage('profile-pin-message', e.message || 'Could not save PIN. Apply the profile-settings migration first.', true); }
