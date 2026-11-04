@@ -24,3 +24,10 @@ The staff login screen asks for Staff ID + PIN. Staff email is used only as the 
 ## Current architecture and limitations
 
 Existing operational screens continue to sync their date-keyed records through `public.app_state` for compatibility. `checklist_templates` stores shared editable task definitions, and `audit_logs` records selected configuration/profile/state changes without storing PIN hashes. Dedicated normalized stock-movement, task-event, toilet-event and issue-report tables, plus persistent PIN rate limiting, remain recommended next steps before a high-compliance production rollout. This package has not been deployed or end-to-end tested against your live Supabase project.
+
+
+## Premium checklist UI update (4 Nov 2026)
+- Standardised checklist colours and contrast across Kitchen Down, Kitchen Up and FOH.
+- Completed checklist items now show **Redo** instead of another **Done** action. Redo returns the item to pending so it can be completed again.
+- Report a problem remains available whether an item is pending, not done or completed.
+- Applied the same interaction to daily, weekly and monthly cleaning tasks.
