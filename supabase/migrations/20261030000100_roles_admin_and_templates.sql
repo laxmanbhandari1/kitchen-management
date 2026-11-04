@@ -2,6 +2,7 @@
 -- and editable shared checklist templates.
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS must_change_pin boolean NOT NULL DEFAULT true;
 ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
+UPDATE public.profiles SET role = 'boss' WHERE role = 'admin';
 ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('developer','boss','manager','employee'));
 
 CREATE TABLE IF NOT EXISTS public.checklist_templates (

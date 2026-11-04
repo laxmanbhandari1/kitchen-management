@@ -1,36 +1,87 @@
-/* THE SHELL - SUPABASE STAFF ID + PIN AUTHENTICATION */
+/* THE SHELL - Authentication
+   Staff sign in using Staff ID + PIN.
+   Supabase Auth accounts are created securely by the Edge Functions.
+*/
 
 window.currentUserRole = "employee";
 window.currentUserName = "Staff";
 window.currentUserId = null;
 window.forcePinChange = false;
 
-/* --------------------------------
-   SHOW SIGNED-IN APPLICATION
--------------------------------- */
+const SHELL_ROLE_LABELS = {
+  employee: "Employee",
+  manager: "Manager",
+  boss: "Boss",
+  developer: "Developer",
+};
+
+const $shell = (id) => document.getElementById(id);
+
+function shellInitials(name) {
+  return (
+    String(name || "S")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((x) => x[0])
+      .join("") || "S"
+  ).toUpperCase();
+}
+
+function shellValidStaffId(userId) {
+  return /^[A-Za-z0-9_-]{3,30}$/.test(userId);
+}
+
+function shellValidPin(pin) {
+  return /^\d{4,8}$/.test(pin);
+}
+
+async function shellReadFunctionError(error) {
+  let detail = error?.message || "Request failed.";
+
+  try {
+    const context = error?.context;
+
+    if (context) {
+      if (typeof context.clone === "function") {
+        const response = context.clone();
+        const body = await response.json();
+        detail = body?.error || body?.message || detail;
+      } else if (typeof context.json === "function") {
+        const body = await context.json();
+        detail = body?.error || body?.message || detail;
+      }
+    }
+  } catch (_) {
+    // Keep the original error message.
+  }
+
+  return detail;
+}
 
 function showSignedInApp(profile, user) {
   window.currentUserRole = profile.role;
-  window.currentUserName =
-    profile.display_name || user.email?.split("@")[0] || "Staff";
+  window.currentUserName = profile.display_name || profile.user_id || "Staff";
   window.currentUserId = user.id;
+  window.forcePinChange = !!profile.must_change_pin;
 
-  document.getElementById("login-screen")?.classList.remove("active");
-  document.getElementById("intro-screen")?.classList.remove("active");
-  document.getElementById("main-app")?.classList.add("active");
-  document.getElementById("bottom-nav")?.classList.add("visible");
+  ["login-screen", "intro-screen"].forEach((id) => {
+    $shell(id)?.classList.remove("active");
+  });
 
-  const welcome = document.getElementById("welcome-text");
-  if (welcome) {
-    welcome.innerText = `Welcome, ${window.currentUserName}`;
+  $shell("main-app")?.classList.add("active");
+  $shell("bottom-nav")?.classList.add("visible");
+
+  if ($shell("welcome-text")) {
+    $shell("welcome-text").textContent = `Welcome, ${window.currentUserName}`;
   }
 
-  const roleText = document.getElementById("role-text");
-  if (roleText) {
-    roleText.innerText = `${profile.role[0].toUpperCase()}${profile.role.slice(1)} View`;
+  if ($shell("role-text")) {
+    $shell("role-text").textContent =
+      `${SHELL_ROLE_LABELS[profile.role] || "Staff"} View`;
   }
 
-  const adminNav = document.getElementById("nav-admin");
+  const adminNav = $shell("nav-admin");
 
   if (adminNav) {
     adminNav.classList.toggle("hidden", profile.role === "employee");
@@ -39,206 +90,167 @@ function showSignedInApp(profile, user) {
   const adminTitle = document.querySelector("#view-admin > .section-title");
 
   if (adminTitle) {
-    const titles = {
-      developer: "Developer Dashboard",
-      boss: "Boss Dashboard",
-      manager: "Manager Dashboard",
-      admin: "Admin Dashboard",
-    };
-
-    adminTitle.textContent = titles[profile.role] || "Leadership Dashboard";
+    adminTitle.textContent =
+      profile.role === "manager"
+        ? "Manager Dashboard"
+        : `${SHELL_ROLE_LABELS[profile.role] || "Leadership"} Dashboard`;
   }
 
-  const staffRole = document.getElementById("staff-role");
+  const roleSelect = $shell("staff-role");
 
-  if (staffRole) {
-    [...staffRole.options].forEach((option) => {
-      if (profile.role === "developer") {
-        option.hidden = false;
-      } else if (profile.role === "boss") {
-        option.hidden = !["employee", "manager"].includes(option.value);
-      } else {
-        option.hidden = option.value !== "employee";
-      }
+  if (roleSelect) {
+    [...roleSelect.options].forEach((option) => {
+      const allowed =
+        profile.role === "developer"
+          ? ["employee", "manager", "boss", "developer"].includes(option.value)
+          : ["employee", "manager"].includes(option.value);
+
+      option.hidden = !allowed;
     });
 
-    if (profile.role === "boss") {
-      staffRole.value = "employee";
+    if (
+      profile.role !== "developer" &&
+      ["boss", "developer"].includes(roleSelect.value)
+    ) {
+      roleSelect.value = "employee";
     }
   }
 
   const avatar = document.querySelector(".header-avatar");
 
-  if (avatar) {
-    const initials = window.currentUserName
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase();
-
-    avatar.innerHTML = `<span class="avatar-initial">${initials}</span>`;
+  if (avatar && !avatar.querySelector("img")) {
+    avatar.innerHTML = `<span class="avatar-initial">${shellInitials(window.currentUserName)}</span>`;
   }
 
-  if (typeof window.refreshShellProfile === "function") {
-    window.refreshShellProfile();
-  }
+  window.refreshShellProfile?.();
+  window.refreshHomeNotices?.();
+  window.refreshShellAdminTools?.();
 
-  if (typeof window.refreshHomeNotices === "function") {
-    window.refreshHomeNotices();
-  }
+  if (window.forcePinChange) {
+    switchTab("profile", $shell("nav-profile"));
 
-  if (typeof window.refreshShellAdminTools === "function") {
-    window.refreshShellAdminTools();
-  }
+    const note = $shell("profile-first-pin-notice");
 
-  if (profile.role === "employee") {
+    if (note) note.hidden = false;
+  } else if (profile.role === "employee") {
     switchTab("home", document.querySelector(".nav-item"));
   } else if (adminNav) {
     switchTab("admin", adminNav);
   }
 }
 
-/* --------------------------------
-   STAFF ID + PIN LOGIN
--------------------------------- */
+/* STAFF LOGIN */
 
 async function handleLogin(event) {
-  if (event) event.preventDefault();
+  event?.preventDefault();
 
-  const userId = document.getElementById("login-user-id")?.value.trim();
+  const userId = ($shell("login-user-id")?.value || "").trim().toUpperCase();
 
-  const pin = document.getElementById("login-pin")?.value.trim();
+  const pin = ($shell("login-pin")?.value || "").trim();
 
-  const message = document.getElementById("login-message");
-  const button = document.getElementById("login-submit");
+  const message = $shell("login-message");
+  const button = $shell("login-submit");
 
-  if (!userId || !/^\d{4,8}$/.test(pin || "")) {
-    message.textContent = "Enter your Staff ID and a 4–8 digit PIN.";
+  // Validate Staff ID.
+  if (!shellValidStaffId(userId)) {
+    if (message) {
+      message.textContent = "Enter a valid Staff ID (3–30 letters or numbers).";
+    }
     return;
   }
 
-  button.disabled = true;
-  message.textContent = "Signing in…";
+  // Validate PIN.
+  if (!shellValidPin(pin)) {
+    if (message) {
+      message.textContent = "Your PIN must contain exactly 4–8 digits.";
+    }
+    return;
+  }
+
+  if (button) button.disabled = true;
+  if (message) message.textContent = "Signing in…";
 
   try {
+    if (typeof window.initSupabase !== "function") {
+      throw new Error("Supabase has not been initialized.");
+    }
+
     const client = await window.initSupabase();
 
-    /*
-      IMPORTANT:
-      The Edge Function expects staffId and pin.
-      Do not change staffId to user_id here.
-    */
-
+    // Call the PIN login Edge Function.
     const { data, error } = await client.functions.invoke("pin-login", {
       body: {
-        staffId: userId,
+        user_id: userId,
         pin: pin,
       },
     });
 
     if (error) {
-      console.error("PIN Edge Function error:", error);
-      throw new Error(
-        data?.error || error.message || "PIN login request failed.",
-      );
+      throw new Error(await shellReadFunctionError(error));
     }
 
-    if (!data?.token_hash) {
+    if (!data || data.error) {
       throw new Error(data?.error || "Invalid Staff ID or PIN.");
     }
 
-    /*
-      Exchange the one-time token for a real Supabase session.
-    */
+    if (!data.token_hash) {
+      throw new Error("Login response did not contain a valid sign-in token.");
+    }
 
+    // Verify the one-time Supabase login token.
     const { data: authData, error: verifyError } = await client.auth.verifyOtp({
       token_hash: data.token_hash,
       type: "magiclink",
     });
 
     if (verifyError) {
-      console.error("Supabase session error:", verifyError);
-      throw new Error("Could not create your login session. Please try again.");
+      throw new Error(`Login verification failed: ${verifyError.message}`);
     }
 
     if (!authData?.user) {
-      throw new Error("Supabase did not return a valid user session.");
+      throw new Error("Supabase did not return a signed-in user.");
     }
 
-    /*
-      Read the actual profile and first-login PIN requirement.
-    */
-
+    // Load the signed-in staff profile.
     const { data: profile, error: profileError } = await client
       .from("profiles")
-      .select("id, display_name, role, active, must_change_pin")
+      .select(
+        "id,user_id,display_name,role,active,must_change_pin,avatar_url,avatar_path",
+      )
       .eq("id", authData.user.id)
       .single();
 
-    if (profileError || !profile) {
-      console.error("Profile loading error:", profileError);
-      await client.auth.signOut();
-      throw new Error("Could not load your staff profile.");
+    if (profileError) {
+      throw new Error(`Could not load staff profile: ${profileError.message}`);
     }
 
-    if (!profile.active) {
+    if (!profile || !profile.active) {
       await client.auth.signOut();
-      throw new Error("This staff account is disabled. Contact your manager.");
+
+      throw new Error("This staff account is disabled. Contact leadership.");
     }
 
-    window.currentUserRole = profile.role;
-    window.currentUserName = profile.display_name || userId;
-    window.currentUserId = authData.user.id;
-
-    /*
-      Get the first-login PIN requirement from the database.
-    */
-
-    window.forcePinChange = profile.must_change_pin === true;
-
-    /*
-      Load shared application data.
-    */
-
-    await window.hydrateShellState();
+    // Load shared application data.
+    if (typeof window.hydrateShellState === "function") {
+      await window.hydrateShellState();
+    }
 
     showSignedInApp(profile, authData.user);
 
-    /*
-      Require temporary PIN change on first login.
-    */
-
-    if (window.forcePinChange) {
-      alert(
-        "Welcome to The Shell. For account security, " +
-          "you must change your temporary PIN before continuing.",
-      );
-
-      const profileNav = document.getElementById("nav-profile");
-
-      if (profileNav) {
-        switchTab("profile", profileNav);
-      } else {
-        switchTab("profile");
-      }
-    }
-
-    message.textContent = "";
+    if (message) message.textContent = "";
   } catch (error) {
     console.error("PIN login failed:", error);
 
-    message.textContent =
-      error.message ||
-      "Sign-in failed. Check your Staff ID and PIN, or contact your manager.";
+    if (message) {
+      message.textContent =
+        error.message || "Sign-in failed. Check your Staff ID and PIN.";
+    }
   } finally {
-    button.disabled = false;
+    if (button) button.disabled = false;
   }
 }
 
-/* --------------------------------
-   LOGOUT
--------------------------------- */
+/* LOGOUT */
 
 async function handleLogout() {
   try {
@@ -251,37 +263,57 @@ async function handleLogout() {
   }
 }
 
-/* --------------------------------
-   CREATE STAFF ACCOUNTS
--------------------------------- */
+/* CREATE STAFF ACCOUNT */
 
 async function handleStaffCreation(event) {
   event.preventDefault();
 
-  const message = document.getElementById("staff-create-message");
-
-  const button = document.getElementById("staff-create-submit");
+  const message = $shell("staff-create-message");
+  const button = $shell("staff-create-submit");
+  const staffForm = $shell("staff-create-form");
 
   if (!["boss", "developer"].includes(window.currentUserRole)) {
-    message.textContent =
-      "Only Boss or Developer accounts can create staff accounts.";
+    if (message) {
+      message.textContent =
+        "Only Boss or Developer accounts can create staff accounts.";
+    }
     return;
   }
 
   const payload = {
-    display_name: document.getElementById("staff-display-name").value.trim(),
-
-    email: document.getElementById("staff-email").value.trim(),
-
-    user_id: document.getElementById("staff-user-id").value.trim(),
-
-    pin: document.getElementById("staff-initial-pin").value,
-
-    role: document.getElementById("staff-role").value,
+    display_name: ($shell("staff-display-name")?.value || "").trim(),
+    email: ($shell("staff-email")?.value || "").trim().toLowerCase(),
+    user_id: ($shell("staff-user-id")?.value || "").trim().toUpperCase(),
+    pin: ($shell("staff-initial-pin")?.value || "").trim(),
+    role: $shell("staff-role")?.value || "employee",
   };
 
-  button.disabled = true;
-  message.textContent = "Creating account…";
+  if (!payload.display_name) {
+    if (message) message.textContent = "Enter the staff member’s name.";
+    return;
+  }
+
+  if (!payload.email) {
+    if (message) message.textContent = "Enter the staff member’s email.";
+    return;
+  }
+
+  if (!shellValidStaffId(payload.user_id)) {
+    if (message) {
+      message.textContent = "Staff ID must be 3–30 letters, numbers, _ or -.";
+    }
+    return;
+  }
+
+  if (!shellValidPin(payload.pin)) {
+    if (message) {
+      message.textContent = "Temporary PIN must contain 4–8 digits.";
+    }
+    return;
+  }
+
+  if (button) button.disabled = true;
+  if (message) message.textContent = "Creating staff account…";
 
   try {
     const client = await window.initSupabase();
@@ -291,46 +323,59 @@ async function handleStaffCreation(event) {
     });
 
     if (error) {
-      console.error("Staff creation error:", error);
-      throw new Error(
-        data?.error || error.message || "Account creation failed.",
-      );
+      throw new Error(await shellReadFunctionError(error));
     }
 
-    if (data?.error) {
-      throw new Error(data.error);
+    if (!data || data.error) {
+      throw new Error(data?.error || "Could not create staff account.");
     }
 
-    document.getElementById("staff-create-form").reset();
-
-    if (window.currentUserRole !== "developer") {
-      document.getElementById("staff-role").value = "employee";
+    if (!data.success || !data.user) {
+      throw new Error("The server did not confirm staff account creation.");
     }
 
-    message.textContent = `Account created successfully. Give the staff member their Staff ID and temporary PIN. They must change their PIN on first login.`;
+    staffForm?.reset();
+
+    if (window.currentUserRole !== "developer" && $shell("staff-role")) {
+      $shell("staff-role").value = "employee";
+    }
+
+    if (message) {
+      message.textContent =
+        `Created ${data.user.display_name} (${SHELL_ROLE_LABELS[data.user.role] || data.user.role}). ` +
+        `Staff ID: ${data.user.user_id}. Give them their temporary PIN.`;
+    }
+
+    window.refreshShellAdminTools?.();
   } catch (error) {
     console.error("Staff creation failed:", error);
 
-    message.textContent = error.message || "Could not create the account.";
+    if (message) {
+      message.textContent =
+        error.message ||
+        "Could not create the account. Check the manage-staff Edge Function logs.";
+    }
   } finally {
-    button.disabled = false;
+    if (button) button.disabled = false;
   }
 }
 
-/* --------------------------------
-   RESTORE EXISTING SESSION
--------------------------------- */
+/* PAGE INITIALIZATION */
 
-async function restoreExistingSession() {
-  const message = document.getElementById("login-message");
+window.addEventListener("DOMContentLoaded", async () => {
+  $shell("login-form")?.addEventListener("submit", handleLogin);
+
+  $shell("staff-create-form")?.addEventListener("submit", handleStaffCreation);
+
+  const loginMessage = $shell("login-message");
 
   try {
     if (
       !window.SUPABASE_CONFIG?.url ||
       !window.SUPABASE_CONFIG?.publishableKey
     ) {
-      if (message) {
-        message.textContent =
+      if (loginMessage) {
+        loginMessage.textContent =
           "Setup needed: add your Supabase URL and publishable key in js/supabase-config.js.";
       }
       return;
@@ -349,51 +394,33 @@ async function restoreExistingSession() {
 
     const { data: profile, error: profileError } = await client
       .from("profiles")
-      .select("id, display_name, role, active, must_change_pin")
+      .select(
+        "id,user_id,display_name,role,active,must_change_pin,avatar_url,avatar_path",
+      )
       .eq("id", session.user.id)
       .single();
 
-    if (profileError || !profile || !profile.active) {
+    if (profileError || !profile?.active) {
       await client.auth.signOut();
+
+      if (loginMessage && profileError) {
+        loginMessage.textContent = `Profile access error: ${profileError.message}`;
+      }
+
       return;
     }
 
-    window.forcePinChange = profile.must_change_pin === true;
-
-    await window.hydrateShellState();
+    if (typeof window.hydrateShellState === "function") {
+      await window.hydrateShellState();
+    }
 
     showSignedInApp(profile, session.user);
-
-    if (window.forcePinChange) {
-      alert("You must change your temporary PIN before continuing.");
-
-      const profileNav = document.getElementById("nav-profile");
-
-      if (profileNav) {
-        switchTab("profile", profileNav);
-      }
-    }
   } catch (error) {
-    console.error("Session restoration failed:", error);
+    console.error("Supabase initialization failed:", error);
 
-    if (message) {
-      message.textContent = error.message || "Could not restore your session.";
+    if (loginMessage) {
+      loginMessage.textContent =
+        error.message || "Supabase setup is incomplete.";
     }
   }
-}
-
-/* --------------------------------
-   INITIALISE AUTHENTICATION
--------------------------------- */
-
-window.addEventListener("DOMContentLoaded", async () => {
-  const loginForm = document.getElementById("login-form");
-
-  loginForm?.addEventListener("submit", handleLogin);
-
-  const staffForm = document.getElementById("staff-create-form");
-
-  staffForm?.addEventListener("submit", handleStaffCreation);
-
-  await restoreExistingSession();
 });

@@ -1,4 +1,4 @@
-/* Profile, picture upload, password and PIN settings. Requires the Supabase profile-settings migration. */
+/* Profile, picture and Staff ID + PIN settings. */
 (function () {
   const $ = (id) => document.getElementById(id);
   const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
@@ -114,7 +114,9 @@
       const { data: prof } = await client.from('profiles').select('must_change_pin').eq('id', window.currentUserId).single();
       const { error } = await client.rpc(prof?.must_change_pin ? 'complete_first_pin_change' : 'set_my_pin', { new_pin: pin });
       if (error) throw error;
-      $('profile-pin-form').reset(); setMessage('profile-pin-message', 'Your PIN has been saved securely.');
+      $('profile-pin-form').reset();
+      if (window.forcePinChange) { window.forcePinChange = false; const notice = $('profile-first-pin-notice'); if (notice) notice.hidden = true; setMessage('profile-pin-message', 'Your temporary PIN has been changed. You can now use The Shell.'); }
+      else setMessage('profile-pin-message', 'Your PIN has been saved securely.');
     } catch (e) { setMessage('profile-pin-message', e.message || 'Could not save PIN. Apply the profile-settings migration first.', true); }
   }
   window.refreshShellProfile = loadProfile;
