@@ -2,7 +2,7 @@
 (function () {
   const STOCK_KEY = 'shell-home-stock-alerts-v1';
   const ALLERGY_KEY = 'shell-allergy-notes-v1';
-  const canManage = () => ['manager', 'admin'].includes(window.currentUserRole || 'employee');
+  const canManage = () => ['manager', 'boss', 'developer'].includes(window.currentUserRole || 'employee');
   const safe = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[char]);
@@ -92,7 +92,7 @@
     const stockForm = document.getElementById('stock-alert-form');
     if (stockForm) stockForm.addEventListener('submit', (event) => {
       event.preventDefault();
-      if (!canManage()) return alert('Only a manager or admin can update stock alerts.');
+      if (!canManage()) return alert('Only leadership can update stock alerts.');
       const nameInput = document.getElementById('stock-alert-name');
       const statusInput = document.getElementById('stock-alert-status');
       const noteInput = document.getElementById('stock-alert-note');
@@ -109,7 +109,7 @@
     const allergyForm = document.getElementById('allergy-note-form');
     if (allergyForm) allergyForm.addEventListener('submit', (event) => {
       event.preventDefault();
-      if (!canManage()) return alert('Only a manager or admin can edit allergy notes.');
+      if (!canManage()) return alert('Only leadership can edit allergy notes.');
       const title = document.getElementById('allergy-note-title').value.trim();
       const details = document.getElementById('allergy-note-details').value.trim();
       if (!title || !details) return;

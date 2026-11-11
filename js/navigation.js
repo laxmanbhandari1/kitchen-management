@@ -15,6 +15,7 @@ function switchTab(tabId, element) {
   const target = document.getElementById(`view-${tabId === 'admin' ? 'admin' : tabId === 'home' ? 'employee' : tabId}`);
   if (target) target.classList.add('active');
   if (tabId === 'profile' && typeof window.refreshShellProfile === 'function') window.refreshShellProfile();
+  if (tabId === 'admin' && typeof window.refreshShellAdminTools === 'function') window.refreshShellAdminTools();
   if (tabId === 'tasks' && typeof window.renderTasksLanding === 'function') window.renderTasksLanding();
   if (typeof window.refreshHomeNotices === 'function') window.refreshHomeNotices();
 }

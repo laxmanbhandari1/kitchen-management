@@ -59,7 +59,8 @@ const KITCHEN_CHECKLISTS = {
     'Clean fridge and freezer doors',
     'Clean underneath equipment',
     'Clean storage and shelves',
-    'Clean handwashing area'
+    'Clean handwashing area',
+    'Clear Inventory'
   ]
 };
 function kitchenChecklistRead() {
@@ -86,33 +87,33 @@ function renderKitchenChecklistForm(area, section) {
     <div class="kcheck-switcher">${Object.keys(KITCHEN_CHECKLISTS).map(s=>`<button type="button" class="kcheck-tab ${s===allowed?'active':''}" data-section="${escapeHtml(s)}">${escapeHtml(s.replace(' Checks',''))}</button>`).join('')}</div>
     <div class="kcheck-counts"><span class="kcheck-count good">✓ ${done} done</span><span class="kcheck-count issue">✕ ${failed} issues</span><span class="kcheck-count pending">○ ${items.length-done-failed} pending</span></div>
     <p class="kcheck-help">Tap ✓ if completed. Tap ✕ if not completed; add a reason. Use “Report a problem” for anything that needs follow-up.</p>
-    <div class="kcheck-items">${items.map((label,i)=>{const entry=sectionState[i]||{};const status=entry.status||'pending';return `<article class="kcheck-item ${status}" data-index="${i}"><div class="kcheck-item-main"><span class="kcheck-number">${String(i+1).padStart(2,'0')}</span><div class="kcheck-label">${escapeHtml(label)}${entry.note?`<p class="kcheck-note">Reason: ${escapeHtml(entry.note)}</p>`:''}${entry.problem?`<p class="kcheck-problem">Problem: ${escapeHtml(entry.problem)}</p>`:''}${entry.staff?`<small>Updated by ${escapeHtml(entry.staff)}${entry.time?` · ${escapeHtml(entry.time)}`:''}</small>`:''}</div><span class="kcheck-status">${status==='done'?'✓':status==='issue'?'✕':'○'}</span></div><div class="kcheck-actions"><button type="button" class="kcheck-button done" data-action="${status==='done'?'redo':'done'}">${status==='done'?'↻ Redo':'✓ Mark done'}</button>${status!=='done'?'<button type="button" class="kcheck-button issue" data-action="issue">✕ Not done</button>':''}<button type="button" class="kcheck-button report" data-action="report">⚑ Report a problem</button>${entry.note||entry.problem?'<button type="button" class="kcheck-button clear" data-action="clear">Clear note</button>':''}</div></article>`;}).join('')}</div>
-    <div class="kcheck-footer"><button type="button" class="stock-save-btn" id="kcheck-save">Save checklist</button><p id="kcheck-message" role="status">Saved on this device as you make changes.</p></div>
+    <div class="kcheck-items">${items.map((label,i)=>{const entry=sectionState[i]||{};const status=entry.status||'pending';return `<article class="kcheck-item ${status} ${entry.unsaved?'is-unsaved':''}" data-index="${i}"><div class="kcheck-item-main"><span class="kcheck-number">${String(i+1).padStart(2,'0')}</span><div class="kcheck-label">${escapeHtml(label)}${entry.note?`<p class="kcheck-note">Reason: ${escapeHtml(entry.note)}</p>`:''}${entry.problem?`<p class="kcheck-problem">Problem: ${escapeHtml(entry.problem)}</p>`:''}${entry.staff?`<small>Updated by ${escapeHtml(entry.staff)}${entry.time?` · ${escapeHtml(entry.time)}`:''}</small>`:''}</div><span class="kcheck-status">${status==='done'?'✓':status==='issue'?'✕':'○'}</span></div><div class="kcheck-actions"><button type="button" class="kcheck-button done" data-action="${status==='done'?'redo':'done'}">${status==='done'?'↻ Redo':'✓ Mark done'}</button>${status!=='done'?'<button type="button" class="kcheck-button issue" data-action="issue">✕ Not done</button>':''}<button type="button" class="kcheck-button report" data-action="report">⚑ Report a problem</button>${entry.note||entry.problem?'<button type="button" class="kcheck-button clear" data-action="clear">Clear note</button>':''}</div></article>`;}).join('')}</div>
+    <div class="kcheck-footer"><button type="button" class="stock-save-btn" id="kcheck-save">Save checklist</button><p id="kcheck-message" role="status">Changes are highlighted until you save.</p></div>
   </div>`;
   area.querySelectorAll('.kcheck-tab').forEach(btn=>btn.addEventListener('click',()=>renderKitchenChecklistForm(area,btn.dataset.section)));
   area.querySelectorAll('.kcheck-item button').forEach(btn=>btn.addEventListener('click',()=>{
     const card=btn.closest('.kcheck-item'), index=card.dataset.index, action=btn.dataset.action;
     const all=kitchenChecklistRead();all[today]=all[today]||{};all[today][allowed]=all[today][allowed]||{};
     const entry=all[today][allowed][index]||{};
-    if(action==='done'){entry.status='done';entry.note='';}
-    if(action==='redo'){entry.status='pending';entry.note='';}
+    if(action==='done'){entry.status='done';entry.note='';entry.unsaved=true;}
+    if(action==='redo'){entry.status='pending';entry.note='';entry.unsaved=true;}
     if(action==='issue'){
       const reason=window.prompt(`Why was this not completed?\n${items[index]}`,entry.note||'');
       if(reason===null)return;
       if(!reason.trim()){window.alert('Please enter a reason for marking this item as not done.');return;}
-      entry.status='issue';entry.note=reason.trim();
+      entry.status='issue';entry.note=reason.trim();entry.unsaved=true;
     }
     if(action==='report'){
       const problem=window.prompt(`Report a problem for:\n${items[index]}`,entry.problem||'');
       if(problem===null)return;
       if(!problem.trim()){window.alert('Please enter a problem description.');return;}
-      entry.problem=problem.trim();
+      entry.problem=problem.trim();entry.unsaved=true;
     }
-    if(action==='clear'){entry.note='';entry.problem='';if(entry.status==='issue')entry.status='pending';}
+    if(action==='clear'){entry.note='';entry.problem='';if(entry.status==='issue')entry.status='pending';entry.unsaved=true;}
     entry.staff=staff;entry.time=new Date().toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
     all[today][allowed][index]=entry;
     const ok=kitchenChecklistSave(all);renderKitchenChecklistForm(area,allowed);
     const msg=area.querySelector('#kcheck-message');if(msg)msg.textContent=ok?'Saved on this device.':'Could not save; check browser storage settings.';
   }));
-  area.querySelector('#kcheck-save').addEventListener('click',()=>{const ok=kitchenChecklistSave(kitchenChecklistRead());const msg=area.querySelector('#kcheck-message');msg.textContent=ok?'Checklist saved on this device.':'Could not save; check browser storage settings.';});
+  area.querySelector('#kcheck-save').addEventListener('click',()=>{const all=kitchenChecklistRead();Object.values(all[today]?.[allowed]||{}).forEach(entry=>entry.unsaved=false);const ok=kitchenChecklistSave(all);if(ok)renderKitchenChecklistForm(area,allowed);const msg=area.querySelector('#kcheck-message');if(msg)msg.textContent=ok?'Checklist saved.':'Could not save; check browser storage settings.';});
 }

@@ -79,7 +79,7 @@
             <div class="header-title" id="welcome-text">Good morning, Alex</div>
             <div class="header-subtitle" id="role-text">Employee View</div>
           </div>
-          <div style="display:flex;align-items:center;gap:10px"><button type="button" class="header-avatar avatar-button" aria-label="Open profile" onclick="switchTab('profile', document.getElementById('nav-profile'))"><span class="avatar-initial">A</span></button><button type="button" class="feature-small-btn" onclick="handleLogout()">Sign out</button></div>
+          <div style="display:flex;align-items:center;gap:10px"><button type="button" class="header-avatar avatar-button" aria-label="Go to Home" onclick="switchTab('home', document.querySelector('#bottom-nav .nav-item'))"><span class="avatar-initial">A</span></button><button type="button" class="feature-small-btn" onclick="handleLogout()">Sign out</button></div>
         </div>
 
         <div class="app-content">
@@ -141,74 +141,122 @@
               <p class="feature-help">Check the approved allergy information before advising a guest. If anything is unclear, ask the manager or chef.</p>
               <div id="allergy-notes-employee" class="feature-list"></div>
             </section>
+            <section id="leadership-home-shortcuts" class="home-feature-section leadership-shortcuts" hidden>
+              <h2 class="section-title">Leadership</h2>
+              <div class="leadership-shortcut-grid">
+                <button type="button" class="card card-clickable" onclick="switchTab('admin', document.getElementById('nav-admin'));document.getElementById('admin-summary-section')?.setAttribute('open','')"><span><b>Daily Summary</b><small>Today's stock and checklist progress</small></span><span>📊</span></button>
+                <button type="button" class="card card-clickable" onclick="switchTab('admin', document.getElementById('nav-admin'));document.getElementById('admin-history-section')?.setAttribute('open','')"><span><b>History</b><small>Review dated activity and changes</small></span><span>🕘</span></button>
+              </div>
+            </section>
           </div>
 
           <!-- ADMIN VIEW -->
           <div id="view-admin" class="view">
-            <h2 class="section-title">Manager Dashboard</h2>
-            <div class="card" style="border-left: 4px solid var(--accent)">
-              <div class="card-title">Staff Management</div>
-              <div class="card-subtitle">Manage staff names and PINs</div>
-            </div>
-            <div class="card">
-              <div class="card-title">Records & History</div>
-              <div class="card-subtitle">View past stock checks and operational records</div>
-            </div>
+            <h2 class="section-title">Leadership dashboard</h2>
+            <p class="feature-help">Operational overview, staff access and dated records. Open a section to work with it.</p>
 
-            <section class="home-feature-section">
-              <h2 class="section-title">Staff Management</h2>
-              <p class="feature-help">Managers can manage operations and checklist content. Only Boss and Developer accounts can create staff accounts; only Developer can create Boss or Developer accounts.</p>
-              <form id="staff-create-form" class="feature-editor">
-                <label class="form-label" for="staff-display-name">Staff name</label>
-                <input id="staff-display-name" class="form-input" maxlength="100" required placeholder="Full name" />
-                <label class="form-label" for="staff-email">Staff email</label>
-                <input id="staff-email" class="form-input" type="email" required placeholder="staff@example.com" />
-                <label class="form-label" for="staff-user-id">Staff ID</label>
-                <input id="staff-user-id" class="form-input" maxlength="80" required placeholder="e.g. FOH014" />
-                <label class="form-label" for="staff-initial-pin">Temporary PIN (4–8 digits)</label>
-                <input id="staff-initial-pin" class="form-input" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required autocomplete="off" />
-                <label class="form-label" for="staff-role">Role</label>
-                <select id="staff-role" class="form-select"><option value="employee">Employee</option><option value="manager">Manager</option><option value="boss">Boss</option><option value="developer">Developer</option></select>
-                <button class="btn-primary feature-submit" id="staff-create-submit" type="submit">Create staff account</button>
-                <p id="staff-create-message" class="feature-help" role="status" aria-live="polite"></p>
-              </form>
-            </section>
-
-            <section class="home-feature-section"><h2 class="section-title">Checklist & Task Builder</h2><p class="feature-help">Managers, Boss and Developer can add or retire checklist items for each station. These shared templates are stored in Supabase.</p><form id="template-form" class="feature-editor"><label class="form-label">Station</label><select id="template-station" class="form-select"><option>FOH</option><option>Kitchen Up</option><option>Kitchen Down</option></select><label class="form-label">Checklist</label><select id="template-checklist" class="form-select"><option>Opening Checks</option><option>Closing Checks</option><option>Cleaning Checks</option><option>Cleaning Logs</option></select><label class="form-label">Task item</label><input id="template-item" class="form-input" required maxlength="180" placeholder="e.g. Mop the kitchen floor"/><button class="btn-primary feature-submit" type="submit">Add checklist item</button><p id="template-message" class="feature-help"></p></form><div id="template-list" class="feature-list"></div></section>
-<section class="home-feature-section" id="leadership-staff-tools"><h2 class="section-title">Staff accounts & PIN reset</h2><p class="feature-help">Only Boss and Developer can reset a staff PIN. The staff member must choose a new PIN at next login.</p><form id="staff-reset-form" class="feature-editor"><label class="form-label">Staff ID</label><input id="reset-staff-id" class="form-input" required/><label class="form-label">Temporary PIN</label><input id="reset-staff-pin" class="form-input" type="password" inputmode="numeric" pattern="[0-9]{4,8}" required/><button class="btn-primary feature-submit" type="submit">Reset staff PIN</button><p id="staff-reset-message" class="feature-help"></p></form></section>
-<section class="home-feature-section" aria-labelledby="admin-stock-heading">
-              <div class="feature-heading-row">
-                <h2 class="section-title" id="admin-stock-heading">🚨 Out of stock / very low</h2>
-                <span class="feature-live-label">Shared manager controls</span>
+            <details class="admin-section" id="admin-summary-section">
+              <summary><span>📊 Daily Summary</span><small>Stock, checklist progress and issues</small></summary>
+              <div class="admin-section-body">
+                <label class="form-label" for="summary-date">Report date</label>
+                <input id="summary-date" class="form-input" type="date">
+                <div id="admin-summary-content" class="admin-data-panel"><p class="feature-help">Choose a date to view the daily operational summary.</p></div>
               </div>
-              <p class="feature-help">Update an item to Very low or Finished. FOH and kitchen staff can view these alerts.</p>
-              <div id="stock-alerts-admin" class="feature-list"></div>
-              <form id="stock-alert-form" class="feature-editor">
-                <label class="form-label" for="stock-alert-name">Item name</label>
-                <input id="stock-alert-name" class="form-input" maxlength="80" placeholder="e.g. Oat milk" required />
-                <label class="form-label" for="stock-alert-status">Status</label>
-                <select id="stock-alert-status" class="form-select">
-                  <option value="low">Very low</option>
-                  <option value="finished">Finished / out of stock</option>
-                </select>
-                <label class="form-label" for="stock-alert-note">Note (optional)</label>
-                <input id="stock-alert-note" class="form-input" maxlength="160" placeholder="e.g. delivery expected tomorrow" />
-                <button class="btn-primary feature-submit" type="submit">Add / update item</button>
-              </form>
-            </section>
+            </details>
 
-            <section class="home-feature-section" aria-labelledby="admin-allergy-heading">
-              <h2 class="section-title" id="admin-allergy-heading">⚠️ Allergy notes</h2>
-              <p class="feature-help">Add the approved notes you provide later. These notes are a reminder only, not a substitute for checking packaging and the current allergen matrix.</p>
-              <div id="allergy-notes-admin" class="feature-list"></div>
-              <form id="allergy-note-form" class="feature-editor">
-                <label class="form-label" for="allergy-note-title">Dish / ingredient</label>
-                <input id="allergy-note-title" class="form-input" maxlength="100" placeholder="e.g. Tiramisu" required />
-                <label class="form-label" for="allergy-note-details">Allergy note</label>
-                <textarea id="allergy-note-details" class="form-input feature-textarea" maxlength="600" placeholder="Enter the approved allergy note" required></textarea>
-                <button class="btn-primary feature-submit" type="submit">Add allergy note</button>
-              </form>
-            </section>
+            <details class="admin-section" id="admin-history-section">
+              <summary><span>🕘 History</span><small>Who changed what and when</small></summary>
+              <div class="admin-section-body">
+                <label class="form-label" for="history-date">Filter by date</label>
+                <input id="history-date" class="form-input" type="date">
+                <label class="form-label" for="history-search">Search activity or staff</label>
+                <input id="history-search" class="form-input" type="search" placeholder="Search name, stock item, checklist…">
+                <div id="admin-history-content" class="admin-data-panel"><p class="feature-help">Loading history…</p></div>
+              </div>
+            </details>
+
+            <details class="admin-section" id="admin-staff-section">
+              <summary><span>👥 Staff Management</span><small>Create accounts and reset PINs</small></summary>
+              <div class="admin-section-body">
+                <p class="feature-help">Only Boss and Developer can create accounts or reset staff PINs. Boss can create Employee and Manager accounts; only Developer can create Boss or Developer accounts.</p>
+                <form id="staff-create-form" class="feature-editor">
+                  <h3>Create staff account</h3>
+                  <label class="form-label" for="staff-display-name">Staff name</label>
+                  <input id="staff-display-name" class="form-input" maxlength="100" required placeholder="Full name">
+                  <label class="form-label" for="staff-email">Staff email</label>
+                  <input id="staff-email" class="form-input" type="email" required placeholder="staff@example.com">
+                  <label class="form-label" for="staff-user-id">Staff ID</label>
+                  <input id="staff-user-id" class="form-input" maxlength="80" required placeholder="e.g. FOH014">
+                  <label class="form-label" for="staff-initial-pin">Temporary PIN (4–8 digits)</label>
+                  <input id="staff-initial-pin" class="form-input" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required autocomplete="off">
+                  <label class="form-label" for="staff-role">Role</label>
+                  <select id="staff-role" class="form-select"><option value="employee">Employee</option><option value="manager">Manager</option><option value="boss">Boss</option><option value="developer">Developer</option></select>
+                  <button class="btn-primary feature-submit" id="staff-create-submit" type="submit">Create staff account</button>
+                  <p id="staff-create-message" class="feature-help" role="status" aria-live="polite"></p>
+                </form>
+                <form id="staff-reset-form" class="feature-editor">
+                  <h3>Reset staff PIN</h3>
+                  <label class="form-label" for="reset-staff-id">Staff ID</label>
+                  <input id="reset-staff-id" class="form-input" required>
+                  <label class="form-label" for="reset-staff-pin">Temporary PIN</label>
+                  <input id="reset-staff-pin" class="form-input" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required autocomplete="off">
+                  <button class="btn-primary feature-submit" type="submit">Reset staff PIN</button>
+                  <p id="staff-reset-message" class="feature-help" role="status" aria-live="polite"></p>
+                </form>
+              </div>
+            </details>
+
+            <details class="admin-section" id="admin-operations-section">
+              <summary><span>⚙️ Operational Controls</span><small>Food-age review, checklists, stock alerts and allergy notes</small></summary>
+              <div class="admin-section-body">
+                <section class="admin-subsection">
+                  <h3>⚠️ Cooked food older than 6 days</h3>
+                  <p class="feature-help">These items are flagged for leadership review. Review the food and record Danger or Not danger. This is an internal review label, not a food-safety approval.</p>
+                  <div id="cooked-age-review-list" class="feature-list"></div>
+                </section>
+                <section class="admin-subsection">
+                  <h3>Checklist & Task Builder</h3>
+                  <p class="feature-help">Managers, Boss and Developer can add or retire shared checklist items.</p>
+                  <form id="template-form" class="feature-editor">
+                    <label class="form-label" for="template-station">Station</label>
+                    <select id="template-station" class="form-select"><option>FOH</option><option>Kitchen Up</option><option>Kitchen Down</option></select>
+                    <label class="form-label" for="template-checklist">Checklist</label>
+                    <select id="template-checklist" class="form-select"><option>Opening Checks</option><option>Closing Checks</option><option>Cleaning Checks</option><option>Cleaning Logs</option></select>
+                    <label class="form-label" for="template-item">Task item</label>
+                    <input id="template-item" class="form-input" required maxlength="180" placeholder="e.g. Mop the kitchen floor">
+                    <button class="btn-primary feature-submit" type="submit">Add checklist item</button>
+                    <p id="template-message" class="feature-help"></p>
+                  </form>
+                  <div id="template-list" class="feature-list"></div>
+                </section>
+                <section class="admin-subsection">
+                  <h3>🚨 Out of stock / very low</h3>
+                  <p class="feature-help">Shared stock alerts visible to FOH and kitchen staff.</p>
+                  <div id="stock-alerts-admin" class="feature-list"></div>
+                  <form id="stock-alert-form" class="feature-editor">
+                    <label class="form-label" for="stock-alert-name">Item name</label>
+                    <input id="stock-alert-name" class="form-input" maxlength="80" placeholder="e.g. Oat milk" required>
+                    <label class="form-label" for="stock-alert-status">Status</label>
+                    <select id="stock-alert-status" class="form-select"><option value="low">Very low</option><option value="finished">Finished / out of stock</option></select>
+                    <label class="form-label" for="stock-alert-note">Note (optional)</label>
+                    <input id="stock-alert-note" class="form-input" maxlength="160" placeholder="e.g. delivery expected tomorrow">
+                    <button class="btn-primary feature-submit" type="submit">Add / update item</button>
+                  </form>
+                </section>
+                <section class="admin-subsection">
+                  <h3>⚠️ Allergy notes</h3>
+                  <p class="feature-help">Approved notes are reminders only; always check packaging and the current allergen matrix.</p>
+                  <div id="allergy-notes-admin" class="feature-list"></div>
+                  <form id="allergy-note-form" class="feature-editor">
+                    <label class="form-label" for="allergy-note-title">Dish / ingredient</label>
+                    <input id="allergy-note-title" class="form-input" maxlength="100" placeholder="e.g. Tiramisu" required>
+                    <label class="form-label" for="allergy-note-details">Allergy note</label>
+                    <textarea id="allergy-note-details" class="form-input feature-textarea" maxlength="600" placeholder="Enter the approved allergy note" required></textarea>
+                    <button class="btn-primary feature-submit" type="submit">Add allergy note</button>
+                  </form>
+                </section>
+              </div>
+            </details>
           </div>
 
           <!-- TASKS VIEW -->

@@ -290,3 +290,39 @@
 .stock-alert{background:#fff4ed!important;color:#b54708!important}
 .toilet-today-progress,.toilet-note{background:#f8fafc!important;color:#475467!important}
 .toilet-row{border-color:#eaecf0!important}.toilet-status.pending{background:#f2f4f7!important;color:#667085!important}.toilet-status.missed{background:#fff1f3!important;color:#c01048!important}.toilet-status.done{background:#ecfdf3!important;color:#027a48!important}.toilet-wait{font-size:12px;color:#98a2b3}.toilet-action.late{background:#fff4ed!important;color:#b54708!important}
+
+/* Leadership dashboard layout */
+.admin-section{background:var(--white);border:1px solid var(--border);border-radius:15px;margin:12px 0;overflow:hidden}
+.admin-section>summary{list-style:none;display:flex;flex-direction:column;gap:4px;padding:16px;cursor:pointer;color:var(--primary);font-weight:800}
+.admin-section>summary::-webkit-details-marker{display:none}
+.admin-section>summary:after{content:'＋';float:right;align-self:flex-end;margin-top:-24px;color:var(--accent);font-size:20px}
+.admin-section[open]>summary:after{content:'−'}
+.admin-section>summary small{color:var(--text);font-size:12px;font-weight:500}
+.admin-section-body{padding:0 16px 16px}
+.admin-section-body h3,.admin-subsection h3{color:var(--primary);font-size:16px;margin:18px 0 10px}
+.admin-subsection{border-top:1px solid var(--border);padding-top:10px;margin-top:16px}
+.admin-data-panel{margin-top:12px}
+.summary-metric-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.summary-metric{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:5px}
+.summary-metric b{font-size:22px;color:var(--primary)}.summary-metric span{font-size:12px;color:var(--text)}
+.history-record{border:1px solid var(--border);border-radius:11px;padding:11px;margin:9px 0;background:var(--white)}
+.history-record summary{display:flex;flex-direction:column;gap:4px;cursor:pointer;color:var(--primary)}
+.history-record summary span{font-size:11px;color:var(--text)}
+.history-record pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:300px;overflow:auto;background:var(--bg);padding:10px;border-radius:8px;font-size:11px;color:var(--text)}
+.cooked-age-item{align-items:center;flex-wrap:wrap}.age-review-status{font-size:11px;font-weight:800;margin-top:7px;color:var(--text)}
+.age-review-status.danger{color:#b42332}.age-review-status.not-danger{color:#16804a}
+.age-review-actions{display:flex;gap:6px;flex-wrap:wrap}.age-review-actions button{border:0;border-radius:9px;padding:8px 10px;font-size:11px;font-weight:800;background:#fbe5e7;color:#a51d2d;cursor:pointer}
+.age-review-actions button[data-age-review="not-danger"]{background:#e2f5e9;color:#176b3a}
+.leadership-shortcuts{margin-top:24px}.leadership-shortcut-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.leadership-shortcut-grid .card{margin:0;text-align:left}.leadership-shortcut-grid b{display:block;color:var(--primary)}.leadership-shortcut-grid small{display:block;color:var(--text);font-size:11px;margin-top:4px}
+.stock-item-card,.kcheck-item,.foh-task{transition:box-shadow .22s,border-color .22s,background-color .22s}
+.stock-item-card.is-unsaved,.kcheck-item.is-unsaved,.foh-task.is-unsaved{border-color:#d5a33b;box-shadow:0 0 0 2px rgba(239,183,64,.20),0 0 18px rgba(239,183,64,.18);background-image:linear-gradient(110deg,rgba(255,219,126,.055),transparent)}
+.is-unsaved-field{box-shadow:0 0 0 2px rgba(239,183,64,.35)!important;border-color:#d5a33b!important}
+.quantity-box input[type=number]{touch-action:none;user-select:none;-webkit-user-select:none}
+@media(min-width:600px){.summary-metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+.stock-status.stale{background:#4a3518;color:#ffd27a;white-space:normal;max-width:125px;text-align:center}
+
+.quantity-box input[type=number]::-webkit-inner-spin-button,.quantity-box input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.quantity-box input[type=number]{-moz-appearance:textfield}
+.quantity-hint{font-size:10px;color:#7f9ba2;text-align:center;line-height:1.2}

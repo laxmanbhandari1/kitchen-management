@@ -46,7 +46,7 @@
 
   function queuePush(key, rawValue) {
     if (!syncEnabled || !isAppKey(key)) return;
-    if (protectedKeys.has(key) && !['manager', 'admin'].includes(window.currentUserRole)) return;
+    if (protectedKeys.has(key) && !['manager', 'boss', 'developer'].includes(window.currentUserRole)) return;
     pending.set(key, rawValue);
     clearTimeout(syncTimer);
     syncTimer = setTimeout(async () => {
@@ -80,7 +80,7 @@
     const localEntries = [];
     for (let i = 0; i < window.localStorage.length; i++) {
       const key = window.localStorage.key(i);
-      if (isAppKey(key) && !remoteKeys.has(key) && (!protectedKeys.has(key) || ['manager', 'admin'].includes(window.currentUserRole))) {
+      if (isAppKey(key) && !remoteKeys.has(key) && (!protectedKeys.has(key) || ['manager', 'boss', 'developer'].includes(window.currentUserRole))) {
         localEntries.push([key, window.localStorage.getItem(key)]);
       }
     }

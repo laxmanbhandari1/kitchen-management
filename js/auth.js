@@ -25,6 +25,8 @@ function showSignedInApp(profile, user) {
 
   const adminNav = $shell('nav-admin');
   if (adminNav) adminNav.classList.toggle('hidden', profile.role === 'employee');
+  const leadershipShortcuts = $shell('leadership-home-shortcuts');
+  if (leadershipShortcuts) leadershipShortcuts.hidden = profile.role === 'employee';
   const adminTitle = document.querySelector('#view-admin > .section-title');
   if (adminTitle) adminTitle.textContent = profile.role === 'manager' ? 'Manager Dashboard' : `${SHELL_ROLE_LABELS[profile.role] || 'Leadership'} Dashboard`;
 
@@ -48,8 +50,7 @@ function showSignedInApp(profile, user) {
     switchTab('profile', $shell('nav-profile'));
     const note = $shell('profile-first-pin-notice');
     if (note) note.hidden = false;
-  } else if (profile.role === 'employee') switchTab('home', document.querySelector('.nav-item'));
-  else if (adminNav) switchTab('admin', adminNav);
+  } else switchTab('home', document.querySelector('#bottom-nav .nav-item'));
 }
 
 async function handleLogin(event) {

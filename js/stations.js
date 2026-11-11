@@ -71,6 +71,7 @@ function escapeHtml(value) {
 function todayKey() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function dateLabel() { return new Date().toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}); }
 function stockState() { const all = readStore(STOCK_KEY, {}); return all[todayKey()] || {}; }
+function latestCookedDate(item) { const all=readStore(STOCK_KEY,{});const dates=Object.keys(all).filter(d=>d<=todayKey()).sort().reverse();for(const d of dates){const entry=all[d]?.[item.id];if(!entry)continue;if(Number(entry.cooked??item.cooked??0)<=0)return '';if(entry.cookedDate)return entry.cookedDate;}return ''; }
 function saveStockState(state) { const all = readStore(STOCK_KEY, {}); all[todayKey()] = state; return writeStore(STOCK_KEY, all); }
 function currentStockValue(item, field) { const saved = stockState()[item.id] || {}; const original = field === 'cooked' ? item.cooked : field === 'raw' ? item.raw : item[field]; return saved[field] !== undefined ? saved[field] : original; }
 function renderStockForm(area) {
@@ -87,13 +88,13 @@ function renderStockForm(area) {
       <div class="stock-tools"><input id="stock-search" type="search" placeholder="🔎 Search item…" aria-label="Search stock items"><select id="stock-category-select" aria-label="Filter category"><option value="All">All categories</option>${categories.slice(1).map(c=>`<option>${c}</option>`).join('')}</select></div>
       <div class="stock-chips" id="stock-chips">${categories.map(c=>`<button type="button" class="stock-chip ${c==='All'?'active':''}" data-category="${c}">${c}</button>`).join('')}</div>
       <div id="stock-items-list"></div>
-      <div class="stock-footer"><button type="button" class="stock-save-btn" id="stock-save-all">Save today's stock check</button><p id="stock-save-message" role="status">Changes save in this browser as you edit.</p></div>
+      <div class="stock-footer"><button type="button" class="stock-save-btn" id="stock-save-all">Save stock changes</button><p id="stock-save-message" role="status">Changes save in this browser as you edit.</p></div>
     </div>`;
   const search = area.querySelector('#stock-search');
   search.addEventListener('input', e => { stockSearch=e.target.value.toLowerCase(); renderStockCards(area); });
   area.querySelector('#stock-category-select').addEventListener('change', e => { stockFilter=e.target.value; syncChips(area); renderStockCards(area); });
   area.querySelectorAll('.stock-chip').forEach(b=>b.addEventListener('click',()=>{stockFilter=b.dataset.category; area.querySelector('#stock-category-select').value=stockFilter;syncChips(area);renderStockCards(area);}));
-  area.querySelector('#stock-save-all').addEventListener('click',()=>{ const ok=writeStore(STOCK_KEY,readStore(STOCK_KEY,{})); area.querySelector('#stock-save-message').textContent=ok?"Today's stock check is saved on this device.":"Could not save. Check your browser storage settings."; });
+  area.querySelector('#stock-save-all').addEventListener('click',()=>{ const ok=writeStore(STOCK_KEY,readStore(STOCK_KEY,{})); if(ok){area.querySelectorAll('.is-unsaved,.is-unsaved-field').forEach(el=>el.classList.remove('is-unsaved','is-unsaved-field'));} area.querySelector('#stock-save-message').textContent=ok?"Today's stock check is saved.":"Could not save. Check your browser storage settings."; });
   renderStockCards(area);
 }
 function syncChips(area) { area.querySelectorAll('.stock-chip').forEach(b=>b.classList.toggle('active',b.dataset.category===stockFilter)); }
@@ -105,27 +106,54 @@ function renderStockCards(area) {
   let lastCat='';
   list.innerHTML=items.map(item=>{
     const saved=state[item.id]||{}; const cooked=currentStockValue(item,'cooked'); const raw=currentStockValue(item,'raw');
-    const sum=Number(cooked||0)+Number(raw||0); const badge=sum===0?'<span class="stock-status out">Out of stock</span>':sum<=2?'<span class="stock-status low">⚠ Very little left</span>':'';
+    const displayCookedDate=Number(cooked||0)>0?(saved.cookedDate||latestCookedDate(item)):'';const age=displayCookedDate?Math.floor((new Date(`${todayKey()}T12:00:00`)-new Date(`${displayCookedDate}T12:00:00`))/86400000):null;
+    const sum=Number(cooked||0)+Number(raw||0); const badge=age!==null&&age>6?`<span class="stock-status stale">⚠ Cooked ${age} days ago · Review</span>`:sum===0?'<span class="stock-status out">Out of stock</span>':sum<=2?'<span class="stock-status low">⚠ Very little left</span>':'';
     const catHeader=item.category!==lastCat?`<div class="stock-category-heading">📍 ${escapeHtml(item.category)}</div>`:''; lastCat=item.category;
     const units=(selected)=>UNIT_OPTIONS.map(u=>`<option value="${u}" ${String(selected).trim()===u?'selected':''}>${u}</option>`).join('');
     return `${catHeader}<article class="stock-item-card" data-item-id="${item.id}">
       <div class="stock-item-head"><div class="stock-item-emoji">${item.category==='Seafood'?'🦞':item.category==='Meat'?'🥩':item.category==='Veg & Sides'?'🥦':item.category==='Dessert'?'🍮':'📦'}</div><div class="stock-item-name"><h3>${escapeHtml(item.name)}</h3><span>${escapeHtml(item.category)}</span></div>${badge}</div>
-      <div class="stock-quantity-grid"><label class="quantity-box"><span>COOKED / PREPPED</span><input type="number" min="0" step="any" data-field="cooked" value="${escapeHtml(cooked)}" aria-label="${escapeHtml(item.name)} cooked quantity"><select data-field="prepUnit" aria-label="${escapeHtml(item.name)} cooked unit">${units(saved.prepUnit??item.prepUnit)}</select></label><label class="quantity-box"><span>RAW / FROZEN</span><input type="number" min="0" step="any" data-field="raw" value="${escapeHtml(raw)}" aria-label="${escapeHtml(item.name)} raw quantity"><select data-field="rawUnit" aria-label="${escapeHtml(item.name)} raw unit">${units(saved.rawUnit??item.rawUnit)}</select></label></div>
+      <div class="stock-quantity-grid"><label class="quantity-box"><span>COOKED / PREPPED</span><input type="number" min="0" step="any" data-field="cooked" value="${escapeHtml(cooked)}" aria-label="${escapeHtml(item.name)} cooked quantity"><small class="quantity-hint">Swipe ↑ / ↓ or tap to type</small><select data-field="prepUnit" aria-label="${escapeHtml(item.name)} cooked unit">${units(saved.prepUnit??item.prepUnit)}</select></label><label class="quantity-box"><span>RAW / FROZEN</span><input type="number" min="0" step="any" data-field="raw" value="${escapeHtml(raw)}" aria-label="${escapeHtml(item.name)} raw quantity"><small class="quantity-hint">Swipe ↑ / ↓ or tap to type</small><select data-field="rawUnit" aria-label="${escapeHtml(item.name)} raw unit">${units(saved.rawUnit??item.rawUnit)}</select></label></div>
       <div class="stock-item-meta"><span>${saved.updated?`Updated by ${escapeHtml(saved.staff||'staff')} · ${escapeHtml(saved.time||'just now')}`:'Not updated today'}</span><button type="button" class="stock-expand" aria-expanded="${saved.expanded?'true':'false'}">${saved.expanded?'Less ▴':'More ▾'}</button></div>
-      <div class="stock-extra ${saved.expanded?'':'hidden'}"><label>USE-BY / PREP DATE<input type="date" data-field="useBy" value="${escapeHtml(saved.useBy??item.useBy)}"></label><label>NOTE<input type="text" data-field="note" placeholder="Optional" value="${escapeHtml(saved.note||'')}"></label><label class="waste-toggle"><input type="checkbox" data-field="waste" ${saved.waste?'checked':''}> ☠️ Dead / waste</label></div>
+      <div class="stock-extra ${saved.expanded?'':'hidden'}"><label>COOKED DATE<input type="date" data-field="cookedDate" value="${escapeHtml(displayCookedDate)}" max="${todayKey()}"><small>Items cooked more than 6 days ago are flagged for leadership review.</small></label><label>NOTE<input type="text" data-field="note" placeholder="Optional" value="${escapeHtml(saved.note||'')}"></label><label class="waste-toggle"><input type="checkbox" data-field="waste" ${saved.waste?'checked':''}> ☠️ Dead / waste</label></div>
     </article>`;
   }).join('');
   list.querySelectorAll('.stock-item-card').forEach(card=>{
     card.querySelector('.stock-expand').addEventListener('click',()=>{const s=stockState();const id=card.dataset.itemId;s[id]=s[id]||{};s[id].expanded=!s[id].expanded;saveStockState(s);renderStockCards(area);});
-    card.querySelectorAll('[data-field]').forEach(input=>input.addEventListener('change',()=>{
-      const s=stockState(),id=card.dataset.itemId,item=STOCK_ITEMS.find(x=>x.id===id);s[id]=s[id]||{};
-      const field=input.dataset.field;s[id][field]=input.type==='checkbox'?input.checked:input.value;
-      s[id].updated=true;s[id].staff=(window.currentUserName || 'Staff');s[id].time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-      saveStockState(s);updateStockSummary(area);
-      // Keep the card in place while editing and update the status indicator.
-      const cooked=Number(card.querySelector('[data-field="cooked"]').value||0),raw=Number(card.querySelector('[data-field="raw"]').value||0),total=cooked+raw;
-      const old=card.querySelector('.stock-status');if(old)old.remove();if(total===0)card.querySelector('.stock-item-head').insertAdjacentHTML('beforeend','<span class="stock-status out">Out of stock</span>');else if(total<=2)card.querySelector('.stock-item-head').insertAdjacentHTML('beforeend','<span class="stock-status low">⚠ Very little left</span>');
-    }));
+    card.querySelectorAll('[data-field]').forEach(input=>{
+      const applyChange=()=>{
+        const s=stockState(),id=card.dataset.itemId;s[id]=s[id]||{};
+        const field=input.dataset.field, previous=s[id][field], oldCookedValue=Number(s[id].cooked??item.cooked??0);
+        if(input.type==='number' && input.value!=='' && Number(input.value)<0)input.value='0';
+        if(field==='cookedDate' && input.value && input.value>todayKey()){window.alert('Cooked date cannot be in the future.');input.value=previous||'';return;}
+        s[id][field]=input.type==='checkbox'?input.checked:input.value;
+        if(field==='cookedDate' && previous!==input.value){s[id].ageReview='pending';s[id].ageReviewDate=input.value;}
+        const cookedInput=card.querySelector('[data-field="cooked"]'),rawInput=card.querySelector('[data-field="raw"]');
+        const priorCooked=oldCookedValue;
+        s[id].cooked=cookedInput?.value??s[id].cooked;s[id].raw=rawInput?.value??s[id].raw;
+        s[id].prepUnit=card.querySelector('[data-field="prepUnit"]')?.value??s[id].prepUnit;
+        s[id].rawUnit=card.querySelector('[data-field="rawUnit"]')?.value??s[id].rawUnit;
+        if(field!=='cookedDate' && !s[id].cookedDate && Number(s[id].cooked)>0){s[id].cookedDate=latestCookedDate(item)||(field==='cooked'&&priorCooked<=0?todayKey():'');}
+        s[id].updated=true;s[id].staff=(window.currentUserName || 'Staff');s[id].time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        saveStockState(s);card.classList.add('is-unsaved');input.classList.add('is-unsaved-field');updateStockSummary(area);
+        const cooked=Number(card.querySelector('[data-field="cooked"]').value||0),raw=Number(card.querySelector('[data-field="raw"]').value||0),total=cooked+raw;
+        const old=card.querySelector('.stock-status');if(old)old.remove();const ageDate=card.querySelector('[data-field="cookedDate"]')?.value;const ageDays=ageDate?Math.floor((new Date(`${todayKey()}T12:00:00`)-new Date(`${ageDate}T12:00:00`))/86400000):null;if(ageDays!==null&&ageDays>6)card.querySelector('.stock-item-head').insertAdjacentHTML('beforeend',`<span class="stock-status stale">⚠ Cooked ${ageDays} days ago · Review</span>`);else if(total===0)card.querySelector('.stock-item-head').insertAdjacentHTML('beforeend','<span class="stock-status out">Out of stock</span>');else if(total<=2)card.querySelector('.stock-item-head').insertAdjacentHTML('beforeend','<span class="stock-status low">⚠ Very little left</span>');
+      };
+      input.addEventListener('change',applyChange);
+      if(input.type==='number'){
+        input.addEventListener('input',()=>{card.classList.add('is-unsaved');input.classList.add('is-unsaved-field');});
+        let touchY=null;
+        input.addEventListener('touchstart',e=>{touchY=e.touches[0].clientY;},{passive:true});
+        input.addEventListener('touchend',e=>{
+          if(touchY===null)return;const delta=touchY-e.changedTouches[0].clientY;touchY=null;
+          if(Math.abs(delta)<22)return;e.preventDefault();
+          const unit=card.querySelector(`[data-field="${input.dataset.field==='cooked'?'prepUnit':'rawUnit'}"]`)?.value||'pcs';
+          const step=['kg','g'].includes(unit)?0.1:1;
+          const next=Math.max(0,Number(input.value||0)+(delta>0?step:-step));
+          input.value=String(Math.round(next*100)/100);applyChange();
+        },{passive:false});
+        input.addEventListener('wheel',e=>{if(document.activeElement!==input)return;e.preventDefault();const unit=card.querySelector(`[data-field="${input.dataset.field==='cooked'?'prepUnit':'rawUnit'}"]`)?.value||'pcs';const step=['kg','g'].includes(unit)?0.1:1;input.value=String(Math.max(0,Number(input.value||0)+(e.deltaY<0?step:-step)));applyChange();},{passive:false});
+      }
+    });
   });
 }
 function updateStockSummary(area) {

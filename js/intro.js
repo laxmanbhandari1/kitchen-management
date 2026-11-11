@@ -19,7 +19,17 @@
             document.getElementById("intro-next-btn").innerText = "Get Started";
           }
         } else {
+          localStorage.setItem('shell.introSeen.v1', 'true');
           document.getElementById("intro-screen").classList.remove("active");
           document.getElementById("login-screen").classList.add("active");
         }
       }
+
+// Show the welcome slides only on the first visit to this browser.
+window.addEventListener('DOMContentLoaded', () => {
+  const seen = localStorage.getItem('shell.introSeen.v1') === 'true';
+  if (seen) {
+    document.getElementById('intro-screen')?.classList.remove('active');
+    document.getElementById('login-screen')?.classList.add('active');
+  }
+});

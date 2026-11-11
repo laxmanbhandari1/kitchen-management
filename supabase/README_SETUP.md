@@ -140,3 +140,16 @@ Then test all of the following:
 ## 11. Important production limitations
 
 This package includes code-level checks and local validation, but it has not been deployed or tested against your live Supabase project. Before relying on it operationally, test the full role matrix, PIN rate limiting/lockout, backups/restore, multi-device concurrent edits and data retention. Numeric PIN login should use unique 6–8 digit PINs and persistent rate limiting before a public production rollout.
+
+
+## Leadership dashboard update (2026-11-11)
+
+After updating the app files, apply the new migration
+`supabase/migrations/20261111000100_leadership_dashboard.sql` in the Supabase SQL Editor
+(or deploy it with the Supabase CLI). This grants active Managers, Bosses and Developers
+read access to the audit history and ensures shared `app_state` changes are written to
+`audit_logs`. The app's History screen can only show changes recorded after this migration
+is applied; it cannot reconstruct activity from before audit logging was enabled.
+
+No new Supabase secrets are required for this update. The existing `pin-login`,
+`manage-staff` and `reset-staff-pin` Edge Functions remain in place.
